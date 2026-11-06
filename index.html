@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test titulaciones náuticas de recreo</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="pantalla-inicio" class="pantalla">
+  <h1>Test titulaciones náuticas de recreo</h1>
+  <p class="subtitulo">Banco de preguntas extraído de los exámenes oficiales (2016-2026)</p>
+
+  <div class="bloque">
+    <h2>1. Titulación</h2>
+    <div class="opciones-titulacion" id="opciones-titulacion">
+      <label class="tarjeta-tit"><input type="checkbox" value="PNB" checked><span class="nombre">PNB</span><span class="desc">Patrón de Navegación Básica</span><span class="n-preguntas" data-tit="PNB">…</span></label>
+      <label class="tarjeta-tit"><input type="checkbox" value="PER" checked><span class="nombre">PER</span><span class="desc">Patrón de Embarcaciones de Recreo</span><span class="n-preguntas" data-tit="PER">…</span></label>
+      <label class="tarjeta-tit"><input type="checkbox" value="PY"><span class="nombre">PY</span><span class="desc">Patrón de Yate</span><span class="n-preguntas" data-tit="PY">…</span></label>
+      <label class="tarjeta-tit"><input type="checkbox" value="CY"><span class="nombre">CY</span><span class="desc">Capitán de Yate</span><span class="n-preguntas" data-tit="CY">…</span></label>
+    </div>
+  </div>
+
+  <div class="bloque">
+    <h2>2. Materias</h2>
+    <div id="bloque-materias"></div>
+  </div>
+
+  <div class="bloque">
+    <h2>3. Número de preguntas</h2>
+    <div class="opciones-n" id="opciones-modo">
+      <button type="button" class="n-btn n-btn-activo" data-modo="total">Un total de…</button>
+      <button type="button" class="n-btn" data-modo="oficial">Como el examen oficial (por materia)</button>
+    </div>
+    <div class="opciones-n" id="opciones-n">
+      <button type="button" class="n-btn" data-n="10">10</button>
+      <button type="button" class="n-btn" data-n="20">20</button>
+      <button type="button" class="n-btn n-btn-activo" data-n="30">30</button>
+      <button type="button" class="n-btn" data-n="45">45</button>
+      <button type="button" class="n-btn" data-n="0">Todas las disponibles</button>
+    </div>
+    <p id="resumen-seleccion" class="resumen-seleccion"></p>
+  </div>
+
+  <button id="btn-empezar" class="btn-primario">Empezar test</button>
+  <p id="error-inicio" class="error"></p>
+</div>
+
+<div id="pantalla-quiz" class="pantalla oculta">
+  <div class="cabecera-quiz">
+    <span id="contador-pregunta"></span>
+    <span id="etiqueta-origen"></span>
+    <span id="puntuacion-parcial"></span>
+  </div>
+
+  <div class="tarjeta-pregunta">
+    <p id="texto-enunciado" class="enunciado"></p>
+
+    <div id="galeria-anexos" class="galeria-anexos oculta"></div>
+
+    <div id="lista-opciones" class="lista-opciones"></div>
+  </div>
+
+  <div class="pie-quiz">
+    <p id="feedback" class="feedback"></p>
+    <div id="explicacion" class="explicacion oculta"></div>
+    <button id="btn-siguiente" class="btn-primario oculta">Siguiente pregunta →</button>
+  </div>
+</div>
+
+<div id="pantalla-resultado" class="pantalla oculta">
+  <h1>Resultado</h1>
+  <p id="resumen-resultado" class="resumen-resultado"></p>
+  <div id="resultado-materias" class="resultado-materias"></div>
+  <div id="lista-falladas" class="lista-falladas"></div>
+  <div class="acciones-resultado">
+    <button id="btn-repetir-falladas" class="btn-secundario oculta">Repasar solo las falladas</button>
+    <button id="btn-nuevo-test" class="btn-primario">Nuevo test</button>
+  </div>
+</div>
+
+<div id="visor-imagen" class="visor-imagen oculta">
+  <span id="visor-cerrar" class="visor-cerrar">&times;</span>
+  <img id="visor-imagen-img" src="" alt="Anexo ampliado">
+</div>
+
+<script>window.RUTA_DATOS = "data/";</script>
+<script src="app.js"></script>
+</body>
+</html>
