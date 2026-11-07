@@ -161,6 +161,31 @@ function titulacionesSeleccionadas() {
   return Array.from(document.querySelectorAll("#opciones-titulacion input:checked")).map(i => i.value);
 }
 
+// la misma pregunta sale en varias convocatorias: `grupo` identifica todas sus apariciones
+function grupoDe(q) { return q.grupo || q.clave || q.id; }
+
+function cuentaDistintas(preguntas) {
+  return new Set(preguntas.map(grupoDe)).size;
+}
+
+// una sola aparicion por grupo (al azar, mejor si el texto no viene de OCR); se saltan los grupos ya usados
+function unicasPorGrupo(pool, vistos) {
+  const porGrupo = new Map();
+  pool.forEach(q => {
+    const g = grupoDe(q);
+    if (vistos && vistos.has(g)) return;
+    if (!porGrupo.has(g)) porGrupo.set(g, []);
+    porGrupo.get(g).push(q);
+  });
+  const resultado = [];
+  porGrupo.forEach(qs => {
+    const limpias = qs.filter(q => !q.origen_ocr);
+    const fuente = limpias.length ? limpias : qs;
+    resultado.push(fuente[Math.floor(Math.random() * fuente.length)]);
+  });
+  return resultado;
+}
+
 function actualizaContadorTarjeta(tit, n) {
   const el = document.querySelector(`.n-preguntas[data-tit="${tit}"]`);
   if (el) el.textContent = `${n} preguntas`;
@@ -169,7 +194,7 @@ function actualizaContadorTarjeta(tit, n) {
 function contarEnBanco(tit, materia) {
   const datos = datosPorTitulacion[tit];
   if (!datos) return null;
-  return datos.filter(q => q.materia === materia).length;
+  return cuentaDistintas(datos.filter(q => q.materia === materia));
 }
 
 function pintaMaterias() {
@@ -258,7 +283,7 @@ function initPantallaInicio() {
   TITULACIONES.forEach(tit => {
     cargaTitulacion(tit)
       .then(data => {
-        actualizaContadorTarjeta(tit, data.length);
+        actualizaContadorTarjeta(tit, cuentaDistintas(data));
         pintaMaterias(); // refresca los contadores "en el banco"
       })
       .catch(err => {
@@ -344,11 +369,14 @@ function construyeCola(seleccion) {
   if (modo === "oficial") {
     // como el examen: por titulacion y materia, en el orden oficial
     const resultado = [];
+    const vistos = new Set();   // el PNB esta dentro del PER: no repetir la misma pregunta
     seleccion.forEach(tit => {
       ESTRUCTURA[tit].forEach(([materia, n]) => {
         if (!materiasMarcadas[tit].has(materia)) return;
-        const pool = barajar(datosPorTitulacion[tit].filter(q => q.materia === materia));
-        resultado.push(...pool.slice(0, n));
+        const pool = barajar(unicasPorGrupo(datosPorTitulacion[tit].filter(q => q.materia === materia), vistos));
+        const elegidas = pool.slice(0, n);
+        elegidas.forEach(q => vistos.add(grupoDe(q)));
+        resultado.push(...elegidas);
       });
     });
     return resultado;
@@ -357,7 +385,7 @@ function construyeCola(seleccion) {
   seleccion.forEach(tit => {
     pool = pool.concat(datosPorTitulacion[tit].filter(q => materiasMarcadas[tit].has(q.materia)));
   });
-  pool = barajar(pool);
+  pool = barajar(unicasPorGrupo(pool));
   const n = numeroPreguntasElegido === 0 ? pool.length : Math.min(numeroPreguntasElegido, pool.length);
   return pool.slice(0, n);
 }
