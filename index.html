@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test titulaciones náuticas de recreo</title>
-<link rel="stylesheet" href="style.css?v=20261107131418">
+<link rel="stylesheet" href="style.css?v=20261107141817">
 </head>
 <body>
 
@@ -67,7 +67,11 @@
   <div class="tarjeta-pregunta">
     <p id="texto-enunciado" class="enunciado"></p>
 
-    <div id="galeria-anexos" class="galeria-anexos oculta"></div>
+    <p id="aviso-carta" class="aviso-carta oculta">📐 Este ejercicio se resuelve sobre la <strong>carta náutica en papel</strong>, que aquí no se puede mostrar: ténla delante, como en el examen. Las tablas del examen sí las tienes abajo.</p>
+    <details id="det-anexos" class="det-anexos oculta">
+      <summary id="resumen-anexos"></summary>
+      <div id="galeria-anexos" class="galeria-anexos"></div>
+    </details>
 
     <div id="lista-opciones" class="lista-opciones"></div>
   </div>
@@ -125,10 +129,13 @@
 
 <div id="visor-imagen" class="visor-imagen oculta">
   <span id="visor-cerrar" class="visor-cerrar">&times;</span>
-  <img id="visor-imagen-img" src="" alt="Anexo ampliado">
+  <button id="visor-prev" class="visor-nav visor-prev" aria-label="Página anterior">‹</button>
+  <button id="visor-next" class="visor-nav visor-next" aria-label="Página siguiente">›</button>
+  <span id="visor-pos" class="visor-pos"></span>
+  <img id="visor-imagen-img" src="" alt="Tabla ampliada">
 </div>
 
 <script>window.RUTA_DATOS = "data/";</script>
-<script src="app.js?v=20261107131418"></script>
+<script src="app.js?v=20261107141817"></script>
 </body>
 </html>

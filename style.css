@@ -327,22 +327,43 @@ h1 {
   position: fixed;
   inset: 0;
   background: rgba(10,20,25,.92);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
+  overflow: auto;
+  text-align: center;
   z-index: 50;
   cursor: zoom-out;
 }
 .visor-imagen img {
-  max-width: 92vw;
-  max-height: 92vh;
+  width: min(96vw, 1000px);
+  max-width: none;
+  margin: 50px auto 30px;
   border-radius: 6px;
+  cursor: zoom-in;
+  background: #fff;
 }
+.visor-imagen.ampliado img { width: auto; cursor: zoom-out; }
+.visor-nav {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 64px;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255,255,255,.2);
+  color: #fff;
+  font-size: 2.2rem;
+  cursor: pointer;
+  z-index: 51;
+}
+.visor-prev { left: 8px; }
+.visor-next { right: 8px; }
+.visor-pos { position: fixed; top: 18px; left: 22px; color: #fff; z-index: 51; font-size: .95rem; }
+.visor-cerrar { z-index: 51; position: fixed; }
 .visor-cerrar {
-  position: absolute;
   top: 18px;
   right: 26px;
-  color: var(--blanco);
+  color: #fff;
   font-size: 2rem;
   cursor: pointer;
 }
@@ -506,4 +527,41 @@ h1 {
   .panel-reporte { background: #3a2f12; }
   .panel-reporte h3, .estado-reporte { color: #f0c36a; }
   .check-reporte small { color: #9fb3bd; }
+}
+
+
+/* ---- tablas del examen y veredicto ---- */
+
+.det-anexos {
+  margin: 12px 0 4px;
+  border: 1px solid var(--gris-borde);
+  border-radius: 8px;
+  padding: 8px 12px;
+  background: var(--azul-claro);
+}
+.det-anexos summary { cursor: pointer; font-weight: 600; color: var(--azul-marino); }
+.det-anexos .galeria-anexos { margin-top: 10px; }
+.aviso-carta {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-left: 4px solid #e69a00;
+  border-radius: 8px;
+  background: #fff6e5;
+  font-size: .92rem;
+}
+.veredicto {
+  border-radius: var(--radio);
+  padding: 14px 16px;
+  margin: 14px 0;
+  border: 2px solid var(--gris-borde);
+  background: var(--blanco);
+}
+.veredicto h3 { margin: 0 0 4px; font-size: 1.1rem; }
+.veredicto.apto { border-color: var(--verde); }
+.veredicto.apto h3 { color: var(--verde); }
+.veredicto.no-apto { border-color: var(--rojo); }
+.veredicto.no-apto h3 { color: var(--rojo); }
+.veredicto p { margin: 2px 0; font-size: .92rem; }
+@media (prefers-color-scheme: dark) {
+  .aviso-carta { background: #3a2f12; }
 }

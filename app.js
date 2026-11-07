@@ -3,22 +3,40 @@
 const TITULACIONES = ["PNB", "PER", "PY", "CY"];
 const RUTA_DATOS = window.RUTA_DATOS || "../salida/";
 
-// Materias de cada titulacion (en el orden del examen) y nº de preguntas de
-// cada una en el examen oficial.
+// Materias de cada titulacion (en el orden del examen) y nº de preguntas de cada una
+// en el examen oficial. El tercer valor (opcional) es el minimo de aciertos de esa materia.
 const ESTRUCTURA = {
   PNB: [["Nomenclatura náutica", 4], ["Elementos de amarre y fondeo", 2], ["Seguridad", 4],
-        ["Legislación", 2], ["Balizamiento", 5], ["Reglamento (RIPA)", 10]],
+        ["Legislación", 2], ["Balizamiento", 5, 3], ["Reglamento (RIPA)", 10, 5]],
   PER: [["Nomenclatura náutica", 4], ["Elementos de amarre y fondeo", 2], ["Seguridad", 4],
-        ["Legislación", 2], ["Balizamiento", 5], ["Reglamento (RIPA)", 10],
+        ["Legislación", 2], ["Balizamiento", 5, 3], ["Reglamento (RIPA)", 10, 5],
         ["Maniobra y navegación", 2], ["Emergencias en la mar", 3], ["Meteorología", 4],
-        ["Teoría de la navegación", 5], ["Carta de navegación", 4]],
-  PY:  [["Seguridad en la mar", 10], ["Meteorología", 10], ["Teoría de navegación", 10],
-        ["Navegación carta", 10]],
+        ["Teoría de la navegación", 5], ["Carta de navegación", 4, 2]],
+  PY:  [["Seguridad en la mar", 10, 5], ["Meteorología", 10, 5], ["Teoría de navegación", 10, 5],
+        ["Navegación carta", 10, 7]],
   CY:  [["Teoría de navegación", 10, 5], ["Cálculo de navegación", 10, 6], ["Meteorología", 10, 5],
         ["Inglés", 10, 5]],
 };
-// Tercer valor opcional = minimo de aciertos para aprobar la materia (sobre las
-// preguntas oficiales). Solo se conoce para CY; en el resto no se marca apto/no apto.
+
+// Criterio de aprobado del examen oficial: aciertos minimos en total y como se combinan con
+// los minimos por materia ("ambos": hacen falta los dos; "global_o_materias": basta con uno).
+// PNB y PER: convocatorias oficiales (Melilla, PNB 17/27 y PER 32/45, errores maximos RIPA 5,
+// balizamiento 2 y carta 2). PY: Murcia (doble criterio global o por materias).
+// CY: minimos indicados por el usuario; la combinacion "global_o_materias" esta por confirmar.
+const CRITERIO = {
+  PNB: { min: 17, modo: "ambos" },
+  PER: { min: 32, modo: "ambos" },
+  PY:  { min: 28, modo: "global_o_materias" },
+  CY:  { min: 28, modo: "global_o_materias" },
+};
+
+// materias cuyas preguntas se acompañan de las tablas de su examen (los ejercicios de calculo y
+// de carta): en el modo oficial se sacan todas del mismo examen para que las tablas coincidan
+const MATERIAS_CON_TABLAS = { PER: "Carta de navegación", PY: "Navegación carta", CY: "Cálculo de navegación" };
+
+function totalExamen(tit) {
+  return ESTRUCTURA[tit].reduce((t, m) => t + m[1], 0);
+}
 
 function minimoMateria(tit, materia) {
   const fila = ESTRUCTURA[tit].find(m => m[0] === materia);
@@ -68,6 +86,7 @@ let respuestasDadas = [];         // letra elegida por pregunta (null = sin cont
 let aciertos = 0;
 let falladas = [];
 let porMateria = {};              // "TIT|materia" -> {tit, materia, ok, total}
+let esExamenOficial = false;      // el test en curso es una simulacion del examen oficial
 let modoReporte = false;          // modo "reporte de errores" activado al empezar
 let pantallaActual = "inicio";
 let pantallaPrevia = "inicio";
@@ -270,7 +289,11 @@ function actualizaResumen() {
   document.querySelectorAll("#opciones-n .n-btn").forEach(b =>
     b.classList.toggle("n-btn-activo", parseInt(b.dataset.n, 10) === numeroPreguntasElegido));
   if (modo === "oficial") {
-    el.textContent = `Saldrán ${totalOficialSeleccion()} preguntas, repartidas por materia como en el examen oficial.`;
+    const aprobado = titulacionesSeleccionadas()
+      .filter(t => ESTRUCTURA[t].every(m => materiasMarcadas[t].has(m[0])))
+      .map(t => `${t} ${totalExamen(t)} preguntas, apto con ${CRITERIO[t].min} aciertos`);
+    el.textContent = `Saldrán ${totalOficialSeleccion()} preguntas, repartidas por materia como en el examen oficial.` +
+      (aprobado.length ? ` Examen completo: ${aprobado.join(" · ")}.` : "");
   } else {
     el.textContent = "";
   }
@@ -324,8 +347,7 @@ function initPantallaInicio() {
   document.getElementById("btn-salir").addEventListener("click", salirDelExamen);
   document.getElementById("btn-nuevo-test").addEventListener("click", () => mostrarPantalla("inicio"));
   document.getElementById("btn-repetir-falladas").addEventListener("click", repasarFalladas);
-  document.getElementById("visor-imagen").addEventListener("click", cerrarVisor);
-  document.getElementById("visor-cerrar").addEventListener("click", cerrarVisor);
+  initVisor();
 
   pintaMaterias();
   actualizaResumen();
@@ -351,6 +373,7 @@ async function empezarTest() {
   try {
     await Promise.all(seleccion.map(cargaTitulacion));
     cola = construyeCola(seleccion);
+    esExamenOficial = modo === "oficial";
     if (cola.length === 0) {
       errorEl.textContent = "No hay preguntas disponibles para esa selección.";
       return;
@@ -373,7 +396,9 @@ function construyeCola(seleccion) {
     seleccion.forEach(tit => {
       ESTRUCTURA[tit].forEach(([materia, n]) => {
         if (!materiasMarcadas[tit].has(materia)) return;
-        const pool = barajar(unicasPorGrupo(datosPorTitulacion[tit].filter(q => q.materia === materia), vistos));
+        const delTema = datosPorTitulacion[tit].filter(q => q.materia === materia);
+        const pool = (MATERIAS_CON_TABLAS[tit] === materia && bloqueDeUnExamen(delTema, n, vistos))
+          || barajar(unicasPorGrupo(delTema, vistos));
         const elegidas = pool.slice(0, n);
         elegidas.forEach(q => vistos.add(grupoDe(q)));
         resultado.push(...elegidas);
@@ -390,9 +415,28 @@ function construyeCola(seleccion) {
   return pool.slice(0, n);
 }
 
+// n preguntas del mismo examen (convocatoria + examen) entre los que tienen sus tablas
+// disponibles, para que el alumno use un unico juego de tablas, como en el examen real
+function bloqueDeUnExamen(preguntas, n, vistos) {
+  const porExamen = new Map();
+  preguntas.filter(q => q.requiere_anexo).forEach(q => {
+    const k = `${q.convocatoria}|${q.examen}`;
+    if (!porExamen.has(k)) porExamen.set(k, []);
+    porExamen.get(k).push(q);
+  });
+  const validos = [];
+  porExamen.forEach(qs => {
+    const unicas = unicasPorGrupo(qs, vistos);
+    if (unicas.length >= n) validos.push(unicas);
+  });
+  if (validos.length === 0) return null;
+  return barajar(validos[Math.floor(Math.random() * validos.length)]);
+}
+
 function repasarFalladas() {
   if (falladas.length === 0) return;
   cola = barajar(falladas.map(f => f.pregunta));
+  esExamenOficial = false;
   lanzaQuiz();
 }
 
@@ -431,19 +475,26 @@ function renderPregunta() {
   document.getElementById("texto-enunciado").textContent = q.enunciado;
 
   const galeria = document.getElementById("galeria-anexos");
+  const detalle = document.getElementById("det-anexos");
   galeria.innerHTML = "";
+  detalle.open = false;
   if (q.requiere_anexo && q.anexos && q.anexos.length > 0) {
-    galeria.classList.remove("oculta");
-    q.anexos.forEach(rel => {
+    detalle.classList.remove("oculta");
+    document.getElementById("resumen-anexos").textContent =
+      `📎 Tablas de este examen (${q.anexos.length} página${q.anexos.length === 1 ? "" : "s"}): pulsa para verlas`;
+    const rutas = q.anexos.map(rel => RUTA_DATOS + rel);
+    rutas.forEach((ruta, idx) => {
       const img = document.createElement("img");
-      img.src = RUTA_DATOS + rel;
-      img.alt = "Anexo del examen";
-      img.addEventListener("click", () => abrirVisor(img.src));
+      img.loading = "lazy";
+      img.src = ruta;
+      img.alt = `Tabla del examen, página ${idx + 1}`;
+      img.addEventListener("click", () => abrirVisor(rutas, idx));
       galeria.appendChild(img);
     });
   } else {
-    galeria.classList.add("oculta");
+    detalle.classList.add("oculta");
   }
+  document.getElementById("aviso-carta").classList.toggle("oculta", !q.carta_papel);
 
   const lista = document.getElementById("lista-opciones");
   lista.innerHTML = "";
@@ -523,6 +574,38 @@ function salirDelExamen() {
 
 // ---------- pantalla resultado ----------
 
+// Resultado oficial de una titulacion: global y por materias. Devuelve null si el test no
+// contiene el examen completo (todas las materias con todas sus preguntas).
+function veredictoTitulacion(tit) {
+  let puntos = 0;
+  let materiasOk = true;
+  const suspensas = [];
+  for (const [materia, n, min] of ESTRUCTURA[tit]) {
+    const f = porMateria[`${tit}|${materia}`];
+    if (!f || f.total !== n) return null;
+    puntos += f.ok;
+    if (min && f.ok < min) { materiasOk = false; suspensas.push(`${materia} (${f.ok}/${n}, mín. ${min})`); }
+  }
+  const { min, modo: criterio } = CRITERIO[tit];
+  const globalOk = puntos >= min;
+  const apto = criterio === "ambos" ? (globalOk && materiasOk) : (globalOk || materiasOk);
+  return { tit, puntos, total: totalExamen(tit), min, globalOk, materiasOk, suspensas, criterio, apto };
+}
+
+function htmlVeredicto(v) {
+  const detalle = [`Total: <strong>${v.puntos} de ${v.total}</strong> (mínimo ${v.min}) ${v.globalOk ? "✓" : "✗"}`];
+  const conMinimos = ESTRUCTURA[v.tit].some(m => m[2]);
+  if (conMinimos) {
+    detalle.push(v.materiasOk ? "Mínimos por materia: todos superados ✓"
+      : `Por debajo del mínimo en: ${v.suspensas.map(escapaHtml).join("; ")} ✗`);
+  }
+  const regla = v.criterio === "ambos"
+    ? "Para aprobar hacen falta el total mínimo y los mínimos por materia."
+    : "Se aprueba con el total mínimo o con todos los mínimos por materia.";
+  return `<div class="veredicto ${v.apto ? "apto" : "no-apto"}"><h3>${v.tit}: ${v.apto ? "APTO" : "NO APTO"}</h3>` +
+    detalle.map(d => `<p>${d}</p>`).join("") + `<p><small>${regla}</small></p></div>`;
+}
+
 function mostrarResultado() {
   mostrarPantalla("resultado");
   const total = cola.length;
@@ -532,6 +615,9 @@ function mostrarResultado() {
 
   const contMaterias = document.getElementById("resultado-materias");
   contMaterias.innerHTML = "";
+  const veredictos = esExamenOficial
+    ? titulacionesSeleccionadas().map(veredictoTitulacion).filter(Boolean) : [];
+  const htmlVeredictos = veredictos.map(htmlVeredicto).join("");
   const filas = Object.values(porMateria);
   if (filas.length > 0) {
     const hayMinimos = filas.some(f => minimoMateria(f.tit, f.materia));
@@ -558,7 +644,9 @@ function mostrarResultado() {
       html += `<tr class="${errores > 0 ? "con-errores" : ""}"><td>${etiqueta}</td>` +
         `<td>${f.ok}/${f.total}</td><td><strong>${errores}</strong></td>${celdasMin}</tr>`;
     });
-    contMaterias.innerHTML = html + "</tbody></table>";
+    contMaterias.innerHTML = htmlVeredictos + html + "</tbody></table>";
+  } else {
+    contMaterias.innerHTML = htmlVeredictos;
   }
 
   const lista = document.getElementById("lista-falladas");
@@ -747,12 +835,53 @@ function initReportes() {
 
 // ---------- visor de imagenes ----------
 
-function abrirVisor(src) {
-  document.getElementById("visor-imagen-img").src = src;
+let visorLista = [];
+let visorIdx = 0;
+
+function muestraVisor() {
+  const visor = document.getElementById("visor-imagen");
+  document.getElementById("visor-imagen-img").src = visorLista[visorIdx];
+  visor.classList.remove("ampliado");
+  visor.scrollTop = 0;
+  visor.scrollLeft = 0;
+  document.getElementById("visor-pos").textContent = `Página ${visorIdx + 1} de ${visorLista.length}`;
+  const varias = visorLista.length > 1;
+  document.getElementById("visor-prev").classList.toggle("oculta", !varias);
+  document.getElementById("visor-next").classList.toggle("oculta", !varias);
+}
+
+function abrirVisor(lista, idx) {
+  visorLista = lista;
+  visorIdx = idx;
+  muestraVisor();
   document.getElementById("visor-imagen").classList.remove("oculta");
 }
+
 function cerrarVisor() {
   document.getElementById("visor-imagen").classList.add("oculta");
+}
+
+function pasaVisor(delta) {
+  visorIdx = (visorIdx + delta + visorLista.length) % visorLista.length;
+  muestraVisor();
+}
+
+function initVisor() {
+  const visor = document.getElementById("visor-imagen");
+  // clic en la imagen: alterna entre ajustada al ancho y tamaño real; clic en el fondo: cierra
+  visor.addEventListener("click", e => {
+    if (e.target.id === "visor-imagen-img") visor.classList.toggle("ampliado");
+    else cerrarVisor();
+  });
+  document.getElementById("visor-cerrar").addEventListener("click", cerrarVisor);
+  document.getElementById("visor-prev").addEventListener("click", e => { e.stopPropagation(); pasaVisor(-1); });
+  document.getElementById("visor-next").addEventListener("click", e => { e.stopPropagation(); pasaVisor(1); });
+  document.addEventListener("keydown", e => {
+    if (visor.classList.contains("oculta")) return;
+    if (e.key === "Escape") cerrarVisor();
+    else if (e.key === "ArrowLeft") pasaVisor(-1);
+    else if (e.key === "ArrowRight") pasaVisor(1);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", initPantallaInicio);
