@@ -36,7 +36,7 @@ function cargaExplicaciones() {
     .catch(() => { explicaciones = {}; });
 }
 
-function muestraExplicacion(q) {
+function muestraExplicacion(q, esCorrecta) {
   const caja = document.getElementById("explicacion");
   caja.innerHTML = "";
   const texto = q.clave && explicaciones[q.clave];
@@ -45,7 +45,8 @@ function muestraExplicacion(q) {
     return;
   }
   const titulo = document.createElement("strong");
-  titulo.textContent = "¿Por qué es correcta?";
+  titulo.textContent = esCorrecta ? "¿Por qué es correcta?"
+    : `La correcta es la ${q.respuesta.toUpperCase()}. ¿Por qué?`;
   caja.appendChild(titulo);
   texto.split(/\n\s*\n/).forEach(parrafo => {
     const p = document.createElement("p");
@@ -63,10 +64,30 @@ let modo = "total";               // "total" | "oficial"
 let numeroPreguntasElegido = 30;
 let cola = [];
 let indiceActual = 0;
+let respuestasDadas = [];         // letra elegida por pregunta (null = sin contestar)
 let aciertos = 0;
 let falladas = [];
 let porMateria = {};              // "TIT|materia" -> {tit, materia, ok, total}
-let respondiendo = false;
+
+// recalcula aciertos, falladas y resumen por materia a partir de las respuestas dadas
+function recalcula() {
+  aciertos = 0;
+  falladas = [];
+  porMateria = {};
+  cola.forEach((q, i) => {
+    const elegida = respuestasDadas[i];
+    if (!elegida) return;
+    const clave = `${q.titulacion}|${q.materia}`;
+    if (!porMateria[clave]) porMateria[clave] = { tit: q.titulacion, materia: q.materia, ok: 0, total: 0 };
+    porMateria[clave].total++;
+    if (elegida === q.respuesta.toLowerCase()) {
+      aciertos++;
+      porMateria[clave].ok++;
+    } else {
+      falladas.push({ pregunta: q, elegida });
+    }
+  });
+}
 
 // ---------- utilidades ----------
 
@@ -268,6 +289,9 @@ function initPantallaInicio() {
   });
 
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
+  document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
+  document.getElementById("btn-anterior").addEventListener("click", anteriorPregunta);
+  document.getElementById("btn-salir").addEventListener("click", salirDelExamen);
   document.getElementById("btn-nuevo-test").addEventListener("click", () => mostrarPantalla("inicio"));
   document.getElementById("btn-repetir-falladas").addEventListener("click", repasarFalladas);
   document.getElementById("visor-imagen").addEventListener("click", cerrarVisor);
@@ -343,9 +367,8 @@ function repasarFalladas() {
 
 function lanzaQuiz() {
   indiceActual = 0;
-  aciertos = 0;
-  falladas = [];
-  porMateria = {};
+  respuestasDadas = cola.map(() => null);
+  recalcula();
   mostrarPantalla("quiz");
   renderPregunta();
 }
@@ -358,15 +381,16 @@ function mostrarPantalla(nombre) {
 }
 
 function renderPregunta() {
-  respondiendo = true;
   const q = cola[indiceActual];
+  const elegida = respuestasDadas[indiceActual];
+  const contestadas = respuestasDadas.filter(Boolean).length;
 
   document.getElementById("contador-pregunta").textContent =
     `Pregunta ${indiceActual + 1} de ${cola.length}`;
   document.getElementById("etiqueta-origen").textContent =
     `${q.titulacion} · ${q.materia} · ${q.convocatoria} ${q.examen} #${q.numero}`;
   document.getElementById("puntuacion-parcial").textContent =
-    `Aciertos: ${aciertos}/${indiceActual}`;
+    `Aciertos: ${aciertos}/${contestadas}`;
 
   document.getElementById("texto-enunciado").textContent = q.enunciado;
 
@@ -395,57 +419,68 @@ function renderPregunta() {
     lista.appendChild(btn);
   });
 
-  document.getElementById("feedback").textContent = "";
-  document.getElementById("feedback").className = "feedback";
+  const feedback = document.getElementById("feedback");
+  feedback.textContent = "";
+  feedback.className = "feedback";
   document.getElementById("explicacion").classList.add("oculta");
-  document.getElementById("btn-siguiente").classList.add("oculta");
+  if (elegida) pintaResultadoPregunta(q, elegida);
+
+  document.getElementById("btn-anterior").disabled = indiceActual === 0;
+  const btnSiguiente = document.getElementById("btn-siguiente");
+  btnSiguiente.classList.toggle("oculta", !elegida);
+  btnSiguiente.textContent = (indiceActual + 1 < cola.length) ? "Siguiente →" : "Ver resultado";
 }
 
-function elegirRespuesta(letra) {
-  if (!respondiendo) return;
-  respondiendo = false;
-
-  const q = cola[indiceActual];
+// marca opciones, feedback y explicacion de una pregunta ya contestada
+function pintaResultadoPregunta(q, elegida) {
   const correcta = q.respuesta.toLowerCase();
-  const esCorrecta = letra === correcta;
-
+  const esCorrecta = elegida === correcta;
   document.querySelectorAll(".opcion-btn").forEach((btn, idx) => {
     const letraBtn = ["a", "b", "c", "d"][idx];
     btn.disabled = true;
     if (letraBtn === correcta) btn.classList.add("correcta");
-    else if (letraBtn === letra) btn.classList.add("incorrecta");
+    else if (letraBtn === elegida) btn.classList.add("incorrecta");
   });
-
-  const clave = `${q.titulacion}|${q.materia}`;
-  if (!porMateria[clave]) porMateria[clave] = { tit: q.titulacion, materia: q.materia, ok: 0, total: 0 };
-  porMateria[clave].total++;
-
   const feedback = document.getElementById("feedback");
   if (esCorrecta) {
-    aciertos++;
-    porMateria[clave].ok++;
     feedback.textContent = "✓ Correcto";
     feedback.className = "feedback ok";
-    muestraExplicacion(q);
   } else {
     feedback.textContent = `✗ Incorrecto. La respuesta correcta es la ${correcta.toUpperCase()}.`;
     feedback.className = "feedback ko";
-    falladas.push({ pregunta: q, elegida: letra });
   }
+  muestraExplicacion(q, esCorrecta);
+}
 
-  document.getElementById("puntuacion-parcial").textContent =
-    `Aciertos: ${aciertos}/${indiceActual + 1}`;
-
-  const btnSiguiente = document.getElementById("btn-siguiente");
-  btnSiguiente.classList.remove("oculta");
-  btnSiguiente.textContent = (indiceActual + 1 < cola.length) ? "Siguiente pregunta →" : "Ver resultado";
-  btnSiguiente.onclick = siguientePregunta;
+function elegirRespuesta(letra) {
+  if (respuestasDadas[indiceActual]) return;
+  respuestasDadas[indiceActual] = letra;
+  recalcula();
+  renderPregunta();
 }
 
 function siguientePregunta() {
-  indiceActual++;
-  if (indiceActual < cola.length) renderPregunta();
-  else mostrarResultado();
+  if (indiceActual + 1 < cola.length) {
+    indiceActual++;
+    renderPregunta();
+  } else {
+    mostrarResultado();
+  }
+}
+
+function anteriorPregunta() {
+  if (indiceActual > 0) {
+    indiceActual--;
+    renderPregunta();
+  }
+}
+
+function salirDelExamen() {
+  const hechas = respuestasDadas.filter(Boolean).length;
+  const aviso = hechas > 0
+    ? `Vas a salir del examen. Llevas ${hechas} de ${cola.length} contestadas y se perderá el progreso. ¿Salir?`
+    : "¿Salir del examen?";
+  if (confirm(aviso)) mostrarPantalla("inicio");
 }
 
 // ---------- pantalla resultado ----------
@@ -505,7 +540,8 @@ function mostrarResultado() {
         <div class="respuestas">
           Tu respuesta: <span class="tu">${f.elegida.toUpperCase()}) ${escapaHtml(q.opciones[f.elegida])}</span><br>
           Correcta: <span class="correcta-txt">${q.respuesta}) ${escapaHtml(q.opciones[q.respuesta.toLowerCase()])}</span>
-        </div>`;
+        </div>` + (q.clave && explicaciones[q.clave]
+          ? `<div class="expl-fallada">${escapaHtml(explicaciones[q.clave])}</div>` : "");
       lista.appendChild(div);
     });
   }

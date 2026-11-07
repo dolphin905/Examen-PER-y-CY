@@ -276,6 +276,17 @@ h1 {
   gap: 12px;
 }
 
+.navegacion-quiz {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+}
+.navegacion-quiz .btn-secundario { margin-right: 0; }
+.navegacion-quiz .btn-secundario:disabled { opacity: .4; cursor: not-allowed; }
+#btn-siguiente { margin-left: auto; }
+
 .feedback {
   font-weight: 700;
   min-height: 1.4em;
@@ -444,3 +455,5 @@ h1 {
 @media (prefers-color-scheme: dark) {
   .explicacion { background: #17301f; }
 }
+
+.fallada-item .expl-fallada { margin-top: 8px; color: #33505f; font-size: .9rem; }
