@@ -21,13 +21,13 @@ const ESTRUCTURA = {
 // Criterio de aprobado del examen oficial: aciertos minimos en total y como se combinan con
 // los minimos por materia ("ambos": hacen falta los dos; "global_o_materias": basta con uno).
 // PNB y PER: convocatorias oficiales (Melilla, PNB 17/27 y PER 32/45, errores maximos RIPA 5,
-// balizamiento 2 y carta 2). PY: Murcia (doble criterio global o por materias).
-// CY: minimos indicados por el usuario; la combinacion "global_o_materias" esta por confirmar.
+// balizamiento 2 y carta 2). PY: Murcia. CY: minimos indicados por el usuario.
+// Por indicacion del usuario, en todos los examenes hay que cumplir ambos requisitos a la vez.
 const CRITERIO = {
   PNB: { min: 17, modo: "ambos" },
   PER: { min: 32, modo: "ambos" },
-  PY:  { min: 28, modo: "global_o_materias" },
-  CY:  { min: 28, modo: "global_o_materias" },
+  PY:  { min: 28, modo: "ambos" },
+  CY:  { min: 28, modo: "ambos" },
 };
 
 // materias cuyas preguntas se acompañan de las tablas de su examen (los ejercicios de calculo y
