@@ -43,6 +43,16 @@
     <p id="resumen-seleccion" class="resumen-seleccion"></p>
   </div>
 
+  <div class="bloque">
+    <h2>4. Modo reporte de errores</h2>
+    <label class="check-reporte">
+      <input type="checkbox" id="chk-reporte">
+      <span>Activar el modo de reporte de errores<small>En cada pregunta aparecerá un cuadro para describir un fallo en el enunciado, las opciones, la respuesta correcta o la explicación.</small></span>
+    </label>
+    <p id="resumen-reportes" class="resumen-seleccion"></p>
+    <button type="button" id="btn-ver-reportes" class="btn-secundario">Ver y copiar los reportes guardados</button>
+  </div>
+
   <button id="btn-empezar" class="btn-primario">Empezar test</button>
   <p id="error-inicio" class="error"></p>
 </div>
@@ -65,6 +75,21 @@
   <div class="pie-quiz">
     <p id="feedback" class="feedback"></p>
     <div id="explicacion" class="explicacion oculta"></div>
+    <div id="panel-reporte" class="panel-reporte oculta">
+      <h3>⚠ Reportar un error en esta pregunta</h3>
+      <div class="tipos-reporte">
+        <label><input type="checkbox" value="Enunciado"> Enunciado</label>
+        <label><input type="checkbox" value="Opciones de respuesta"> Opciones</label>
+        <label><input type="checkbox" value="Respuesta correcta marcada"> Respuesta correcta</label>
+        <label><input type="checkbox" value="Explicación"> Explicación</label>
+        <label><input type="checkbox" value="Otro"> Otro</label>
+      </div>
+      <textarea id="txt-reporte" rows="3" placeholder="Describe el error (p. ej.: «las cuatro opciones dicen lo mismo», «la correcta debería ser la C», «la explicación habla de otra cosa»)…"></textarea>
+      <div class="estado-reporte">
+        <span id="estado-reporte"></span>
+        <button type="button" id="btn-ver-reportes-quiz" class="btn-enlace"></button>
+      </div>
+    </div>
     <div class="navegacion-quiz">
       <button id="btn-salir" class="btn-secundario">Salir del examen</button>
       <button id="btn-anterior" class="btn-secundario">← Anterior</button>
@@ -82,6 +107,20 @@
     <button id="btn-repetir-falladas" class="btn-secundario oculta">Repasar solo las falladas</button>
     <button id="btn-nuevo-test" class="btn-primario">Nuevo test</button>
   </div>
+</div>
+
+<div id="pantalla-reportes" class="pantalla oculta">
+  <h1>Reportes de errores</h1>
+  <p id="info-reportes" class="subtitulo"></p>
+  <p class="ayuda-reportes">Copia este texto y pégalo en el chat con Claude Code para que corrija los fallos. Los reportes se guardan en este navegador hasta que los borres.</p>
+  <textarea id="txt-informe" class="txt-informe" readonly rows="16"></textarea>
+  <div class="acciones-resultado">
+    <button id="btn-copiar-informe" class="btn-primario">Copiar al portapapeles</button>
+    <button id="btn-descargar-informe" class="btn-secundario">Descargar .txt</button>
+    <button id="btn-borrar-reportes" class="btn-secundario">Borrar todos</button>
+    <button id="btn-volver-reportes" class="btn-secundario">Volver</button>
+  </div>
+  <p id="msg-informe" class="resumen-seleccion"></p>
 </div>
 
 <div id="visor-imagen" class="visor-imagen oculta">

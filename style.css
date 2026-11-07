@@ -457,3 +457,53 @@ h1 {
 }
 
 .fallada-item .expl-fallada { margin-top: 8px; color: #33505f; font-size: .9rem; }
+
+
+/* ---- modo reporte de errores ---- */
+
+.check-reporte {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--blanco);
+  border: 1px solid var(--gris-borde);
+  border-radius: var(--radio);
+  padding: 12px 14px;
+  cursor: pointer;
+}
+.check-reporte input { margin-top: 5px; width: 18px; height: 18px; }
+.check-reporte small { display: block; color: #5c6b73; font-weight: 400; margin-top: 2px; }
+#btn-ver-reportes { margin-top: 10px; }
+
+.panel-reporte {
+  width: 100%;
+  background: #fff6e5;
+  border-left: 4px solid #e69a00;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 12px;
+  font-size: .95rem;
+}
+.panel-reporte h3 { margin: 0 0 8px; font-size: 1rem; color: #8a5a00; }
+.tipos-reporte { display: flex; flex-wrap: wrap; gap: 4px 16px; margin-bottom: 8px; }
+.tipos-reporte label { cursor: pointer; }
+.panel-reporte textarea, .txt-informe {
+  width: 100%;
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--gris-borde);
+  border-radius: 8px;
+  background: var(--blanco);
+  color: var(--gris-texto);
+  resize: vertical;
+}
+.txt-informe { font-family: Consolas, "Courier New", monospace; font-size: .85rem; margin-bottom: 12px; }
+.estado-reporte { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: .85rem; color: #8a5a00; }
+.btn-enlace { background: none; border: none; color: var(--azul); text-decoration: underline; cursor: pointer; font-size: .85rem; padding: 0; }
+.ayuda-reportes { font-size: .9rem; }
+#pantalla-reportes .acciones-resultado button { margin-bottom: 8px; }
+@media (prefers-color-scheme: dark) {
+  .panel-reporte { background: #3a2f12; }
+  .panel-reporte h3, .estado-reporte { color: #f0c36a; }
+  .check-reporte small { color: #9fb3bd; }
+}

@@ -68,6 +68,9 @@ let respuestasDadas = [];         // letra elegida por pregunta (null = sin cont
 let aciertos = 0;
 let falladas = [];
 let porMateria = {};              // "TIT|materia" -> {tit, materia, ok, total}
+let modoReporte = false;          // modo "reporte de errores" activado al empezar
+let pantallaActual = "inicio";
+let pantallaPrevia = "inicio";
 
 // recalcula aciertos, falladas y resumen por materia a partir de las respuestas dadas
 function recalcula() {
@@ -128,7 +131,7 @@ function guardaPreferencias() {
     localStorage.setItem("test-nautica-prefs", JSON.stringify({
       tits: titulacionesSeleccionadas(),
       materias: Object.fromEntries(TITULACIONES.map(t => [t, Array.from(materiasMarcadas[t])])),
-      modo, n: numeroPreguntasElegido,
+      modo, n: numeroPreguntasElegido, reporte: modoReporte,
     }));
   } catch (e) { /* almacenamiento no disponible: se ignora */ }
 }
@@ -148,6 +151,7 @@ function cargaPreferencias() {
     });
     if (p.modo === "oficial" || p.modo === "total") modo = p.modo;
     if (typeof p.n === "number") numeroPreguntasElegido = p.n;
+    modoReporte = p.reporte === true;
   } catch (e) { /* preferencias corruptas: se ignoran */ }
 }
 
@@ -288,6 +292,7 @@ function initPantallaInicio() {
     });
   });
 
+  initReportes();
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
   document.getElementById("btn-anterior").addEventListener("click", anteriorPregunta);
@@ -374,7 +379,10 @@ function lanzaQuiz() {
 }
 
 function mostrarPantalla(nombre) {
-  ["inicio", "quiz", "resultado"].forEach(p => {
+  if (nombre !== pantallaActual) pantallaPrevia = pantallaActual;
+  pantallaActual = nombre;
+  if (nombre === "inicio") actualizaResumenReportes();
+  ["inicio", "quiz", "resultado", "reportes"].forEach(p => {
     document.getElementById(`pantalla-${p}`).classList.toggle("oculta", p !== nombre);
   });
   window.scrollTo(0, 0);
@@ -424,6 +432,8 @@ function renderPregunta() {
   feedback.className = "feedback";
   document.getElementById("explicacion").classList.add("oculta");
   if (elegida) pintaResultadoPregunta(q, elegida);
+
+  pintaPanelReporte(q);
 
   document.getElementById("btn-anterior").disabled = indiceActual === 0;
   const btnSiguiente = document.getElementById("btn-siguiente");
@@ -547,6 +557,164 @@ function mostrarResultado() {
   }
 
   document.getElementById("btn-repetir-falladas").classList.toggle("oculta", falladas.length === 0);
+}
+
+// ---------- reporte de errores ----------
+
+const CLAVE_REPORTES = "test-nautica-reportes";
+
+function leeReportes() {
+  try {
+    const r = JSON.parse(localStorage.getItem(CLAVE_REPORTES));
+    return r && typeof r === "object" ? r : {};
+  } catch (e) { return {}; }
+}
+
+function escribeReportes(r) {
+  try {
+    localStorage.setItem(CLAVE_REPORTES, JSON.stringify(r));
+    return true;
+  } catch (e) { return false; }
+}
+
+function numReportes() { return Object.keys(leeReportes()).length; }
+
+function textoNumReportes() {
+  const n = numReportes();
+  return n === 0 ? "No hay reportes guardados." : `${n} reporte${n === 1 ? "" : "s"} guardado${n === 1 ? "" : "s"}.`;
+}
+
+function actualizaResumenReportes() {
+  const n = numReportes();
+  document.getElementById("resumen-reportes").textContent = textoNumReportes();
+  const b = document.getElementById("btn-ver-reportes");
+  b.disabled = n === 0;
+  b.style.opacity = n === 0 ? ".5" : "1";
+  document.getElementById("btn-ver-reportes-quiz").textContent = n ? `Ver y copiar reportes (${n})` : "";
+}
+
+// rellena el panel con el reporte ya guardado de la pregunta actual (si existe)
+function pintaPanelReporte(q) {
+  const panel = document.getElementById("panel-reporte");
+  panel.classList.toggle("oculta", !modoReporte);
+  if (!modoReporte) return;
+  const r = leeReportes()[q.id];
+  document.getElementById("txt-reporte").value = r ? r.comentario : "";
+  panel.querySelectorAll(".tipos-reporte input").forEach(c => {
+    c.checked = !!(r && r.tipos.includes(c.value));
+  });
+  document.getElementById("estado-reporte").textContent = r ? "Reporte guardado ✓" : "";
+  actualizaResumenReportes();
+}
+
+// guarda (o borra) el reporte de la pregunta actual; se llama en cada cambio
+function guardaReporteActual() {
+  const q = cola[indiceActual];
+  if (!modoReporte || !q) return;
+  const comentario = document.getElementById("txt-reporte").value.trim();
+  const tipos = Array.from(document.querySelectorAll("#panel-reporte .tipos-reporte input:checked")).map(c => c.value);
+  const todos = leeReportes();
+  const estado = document.getElementById("estado-reporte");
+  if (!comentario && tipos.length === 0) {
+    delete todos[q.id];
+    estado.textContent = "";
+  } else {
+    todos[q.id] = {
+      id: q.id, clave: q.clave, titulacion: q.titulacion, materia: q.materia,
+      convocatoria: q.convocatoria, examen: q.examen, numero: q.numero,
+      enunciado: q.enunciado, opciones: q.opciones, respuesta: q.respuesta,
+      explicacion: (q.clave && explicaciones[q.clave]) || "",
+      tipos, comentario, fecha: new Date().toISOString(),
+    };
+    estado.textContent = "Reporte guardado ✓";
+  }
+  if (!escribeReportes(todos)) estado.textContent = "No se ha podido guardar (almacenamiento del navegador no disponible)";
+  actualizaResumenReportes();
+}
+
+function generaInforme() {
+  const lista = Object.values(leeReportes()).sort((a, b) => a.fecha.localeCompare(b.fecha));
+  if (lista.length === 0) return "";
+  const lineas = [`REPORTE DE ERRORES - Test titulaciones náuticas (${lista.length})`, ""];
+  lista.forEach((r, i) => {
+    lineas.push(`=== ${i + 1}/${lista.length} ===`);
+    lineas.push(`ID: ${r.id} | clave: ${r.clave || "-"}`);
+    lineas.push(`${r.titulacion} · ${r.materia} · ${r.convocatoria} ${r.examen} #${r.numero}`);
+    lineas.push(`Error en: ${r.tipos.length ? r.tipos.join(", ") : "(sin indicar)"}`);
+    lineas.push(`Comentario: ${r.comentario || "(sin comentario)"}`);
+    lineas.push("--- Tal como se mostraba ---");
+    lineas.push(r.enunciado);
+    ["a", "b", "c", "d"].forEach(l => lineas.push(`${l.toUpperCase()}) ${r.opciones[l]}`));
+    lineas.push(`Correcta marcada: ${String(r.respuesta).toUpperCase()}`);
+    if (r.explicacion) lineas.push(`Explicación: ${r.explicacion}`);
+    lineas.push("");
+  });
+  return lineas.join("\n");
+}
+
+function abreReportes() {
+  if (pantallaActual === "quiz") guardaReporteActual();
+  document.getElementById("info-reportes").textContent = textoNumReportes();
+  document.getElementById("txt-informe").value = generaInforme();
+  document.getElementById("msg-informe").textContent = "";
+  mostrarPantalla("reportes");
+}
+
+function copiaInforme() {
+  const area = document.getElementById("txt-informe");
+  const msg = document.getElementById("msg-informe");
+  if (!area.value) { msg.textContent = "No hay nada que copiar."; return; }
+  const ok = () => { msg.textContent = "Copiado. Pégalo en el chat."; };
+  const respaldo = () => {
+    area.focus();
+    area.select();
+    try { document.execCommand("copy") ? ok() : (msg.textContent = "Selecciona el texto y copia con Ctrl+C."); }
+    catch (e) { msg.textContent = "Selecciona el texto y copia con Ctrl+C."; }
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(area.value).then(ok, respaldo);
+  } else {
+    respaldo();
+  }
+}
+
+function descargaInforme() {
+  const texto = document.getElementById("txt-informe").value;
+  if (!texto) return;
+  const url = URL.createObjectURL(new Blob([texto], { type: "text/plain;charset=utf-8" }));
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `reportes-errores-${new Date().toISOString().slice(0, 10)}.txt`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function borraReportes() {
+  const n = numReportes();
+  if (n === 0) return;
+  if (!confirm(`Se borrarán los ${n} reportes guardados en este navegador. ¿Seguro? (Copia antes el texto si aún no lo has enviado.)`)) return;
+  escribeReportes({});
+  document.getElementById("txt-informe").value = "";
+  document.getElementById("info-reportes").textContent = textoNumReportes();
+  document.getElementById("msg-informe").textContent = "Reportes borrados.";
+  actualizaResumenReportes();
+}
+
+function initReportes() {
+  const chk = document.getElementById("chk-reporte");
+  chk.checked = modoReporte;
+  chk.addEventListener("change", () => { modoReporte = chk.checked; guardaPreferencias(); });
+  document.getElementById("txt-reporte").addEventListener("input", guardaReporteActual);
+  document.querySelectorAll("#panel-reporte .tipos-reporte input").forEach(c => c.addEventListener("change", guardaReporteActual));
+  document.getElementById("btn-ver-reportes").addEventListener("click", abreReportes);
+  document.getElementById("btn-ver-reportes-quiz").addEventListener("click", abreReportes);
+  document.getElementById("btn-copiar-informe").addEventListener("click", copiaInforme);
+  document.getElementById("btn-descargar-informe").addEventListener("click", descargaInforme);
+  document.getElementById("btn-borrar-reportes").addEventListener("click", borraReportes);
+  document.getElementById("btn-volver-reportes").addEventListener("click", () => mostrarPantalla(pantallaPrevia));
+  actualizaResumenReportes();
 }
 
 // ---------- visor de imagenes ----------
