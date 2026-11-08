@@ -565,3 +565,9 @@ h1 {
 @media (prefers-color-scheme: dark) {
   .aviso-carta { background: #3a2f12; }
 }
+
+/* ---- juego de palabras en inglés ---- */
+
+.chip-juego { border-style: dashed; }
+.n-btn:disabled { opacity: .4; cursor: not-allowed; }
+.n-btn:disabled:hover { border-color: inherit; }

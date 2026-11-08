@@ -1,0 +1,2303 @@
+[
+ {
+  "id": 1,
+  "en": "ABAFT",
+  "es": "Hacia popa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 1
+ },
+ {
+  "id": 2,
+  "en": "ABEAM",
+  "es": "Por el través",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 2
+ },
+ {
+  "id": 3,
+  "en": "ABREAST",
+  "es": "En paralelo a un barco. En oposición a un punto de referencia",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 3,
+  "nota": "Corregido por el usuario: en el libro está impreso «Por el través» (igual que ABEAM)."
+ },
+ {
+  "id": 4,
+  "en": "ADRIFT",
+  "es": "A la deriva",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 4
+ },
+ {
+  "id": 5,
+  "en": "AFT",
+  "es": "A popa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 5
+ },
+ {
+  "id": 6,
+  "en": "AFT BREAST LINE",
+  "es": "Través de popa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 6
+ },
+ {
+  "id": 7,
+  "en": "AGROUND",
+  "es": "Encallado. Varado",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 7
+ },
+ {
+  "id": 8,
+  "en": "AHEAD",
+  "es": "A proa. Avante",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 8
+ },
+ {
+  "id": 9,
+  "en": "ALEE",
+  "es": "A sotavento",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 9
+ },
+ {
+  "id": 10,
+  "en": "ALOFT",
+  "es": "Sobre la cubierta",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 10
+ },
+ {
+  "id": 11,
+  "en": "AMIDSHIPS",
+  "es": "Crujía",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 11
+ },
+ {
+  "id": 12,
+  "en": "ASHORE",
+  "es": "A tierra",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 12
+ },
+ {
+  "id": 13,
+  "en": "ASTERN",
+  "es": "Atrás",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 13
+ },
+ {
+  "id": 14,
+  "en": "ATHWARTSHIPS",
+  "es": "De banda a banda",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 14
+ },
+ {
+  "id": 15,
+  "en": "AWASH",
+  "es": "A flor de agua",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 15
+ },
+ {
+  "id": 16,
+  "en": "AWEIGH",
+  "es": "A pique",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 16
+ },
+ {
+  "id": 17,
+  "en": "BACKING",
+  "es": "Rolar el viento en sentido contrario a las agujas del reloj",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 17
+ },
+ {
+  "id": 18,
+  "en": "BALLAST",
+  "es": "Lastre",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 18
+ },
+ {
+  "id": 19,
+  "en": "BATTEN DOWN",
+  "es": "Cerrar y trincar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 19
+ },
+ {
+  "id": 20,
+  "en": "BEACON",
+  "es": "Baliza",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 20
+ },
+ {
+  "id": 21,
+  "en": "BEAM",
+  "es": "Manga",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 21
+ },
+ {
+  "id": 22,
+  "en": "BEARING",
+  "es": "Demora",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 22
+ },
+ {
+  "id": 23,
+  "en": "BERTH",
+  "es": "Amarradero. Fondeadero",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 23,
+  "nota": "En los exámenes de CY aparece como «Atraque» (y, en otra pregunta, «Resguardo»)."
+ },
+ {
+  "id": 24,
+  "en": "BILGE",
+  "es": "Sentina",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 24
+ },
+ {
+  "id": 25,
+  "en": "BLAST",
+  "es": "Pitada",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 25
+ },
+ {
+  "id": 26,
+  "en": "BOAT HOOK",
+  "es": "Bichero",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 26
+ },
+ {
+  "id": 27,
+  "en": "BOW",
+  "es": "Proa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 27
+ },
+ {
+  "id": 28,
+  "en": "BOWLINE",
+  "es": "As de guía",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 28
+ },
+ {
+  "id": 29,
+  "en": "BREADTH",
+  "es": "Manga",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 29
+ },
+ {
+  "id": 30,
+  "en": "BULKHEAD",
+  "es": "Mamparo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 30
+ },
+ {
+  "id": 31,
+  "en": "BUOY",
+  "es": "Boya",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 31
+ },
+ {
+  "id": 32,
+  "en": "CALL SIGN",
+  "es": "Indicativo de llamada",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 32
+ },
+ {
+  "id": 33,
+  "en": "CALM SEA",
+  "es": "Mar llana",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 33
+ },
+ {
+  "id": 34,
+  "en": "CAPSIZE",
+  "es": "Zozobrar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 34
+ },
+ {
+  "id": 35,
+  "en": "CAPSTAN",
+  "es": "Cabrestante",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 35
+ },
+ {
+  "id": 36,
+  "en": "CAST OFF",
+  "es": "Largar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 36
+ },
+ {
+  "id": 37,
+  "en": "CASUALTY",
+  "es": "Muerte por accidente",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 37,
+  "nota": "En los exámenes de CY aparece traducido como «Víctima»."
+ },
+ {
+  "id": 38,
+  "en": "CHOCK",
+  "es": "Guiacabos",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 38
+ },
+ {
+  "id": 39,
+  "en": "CLEAT",
+  "es": "Cornamusa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 1,
+  "fila": 39
+ },
+ {
+  "id": 40,
+  "en": "CLOVE HITCH",
+  "es": "Ballestrinque",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 1
+ },
+ {
+  "id": 41,
+  "en": "COURSE",
+  "es": "Derrota. Rumbo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 2
+ },
+ {
+  "id": 42,
+  "en": "DERELICT",
+  "es": "Buque abandonado en el mar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 3
+ },
+ {
+  "id": 43,
+  "en": "DISTRESS",
+  "es": "Situación de peligro",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 4
+ },
+ {
+  "id": 44,
+  "en": "DIVER",
+  "es": "Buzo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 5
+ },
+ {
+  "id": 45,
+  "en": "DRAFT",
+  "es": "Calado",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 6
+ },
+ {
+  "id": 46,
+  "en": "DRAGGING",
+  "es": "Garreo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 7
+ },
+ {
+  "id": 47,
+  "en": "DRAUGHT",
+  "es": "Calado",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 8
+ },
+ {
+  "id": 48,
+  "en": "DREDGING",
+  "es": "Dragado",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 9
+ },
+ {
+  "id": 49,
+  "en": "DRIFT",
+  "es": "Deriva",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 10
+ },
+ {
+  "id": 50,
+  "en": "EBB",
+  "es": "Reflujo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 11
+ },
+ {
+  "id": 51,
+  "en": "FAIRLEAD",
+  "es": "Guiacabos",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 12
+ },
+ {
+  "id": 52,
+  "en": "FAIRWAY",
+  "es": "Canal",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 13
+ },
+ {
+  "id": 53,
+  "en": "FATHOM",
+  "es": "Braza (6 pies)",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 14
+ },
+ {
+  "id": 54,
+  "en": "FENDER",
+  "es": "Defensa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 15
+ },
+ {
+  "id": 55,
+  "en": "FLARE",
+  "es": "Bengala",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 16
+ },
+ {
+  "id": 56,
+  "en": "FLOOD",
+  "es": "Pleamar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 17,
+  "nota": "Traducción impresa «Pleamar», igual que HIGH WATER; flood suele ser marea creciente. Sin revisar."
+ },
+ {
+  "id": 57,
+  "en": "FOLLOWING SEA",
+  "es": "Mar de popa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 18,
+  "nota": "Corregido por el usuario: en el libro está impreso «Buque que alcanza» (error)."
+ },
+ {
+  "id": 58,
+  "en": "FORE-AND-AFT",
+  "es": "De proa a popa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 19
+ },
+ {
+  "id": 59,
+  "en": "FORWARD BREAST LINE",
+  "es": "Través de proa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 20
+ },
+ {
+  "id": 60,
+  "en": "FOUL ANCHOR",
+  "es": "Ancla enredada",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 21
+ },
+ {
+  "id": 61,
+  "en": "FOUL PROPELLER",
+  "es": "Hélice enredada",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 22
+ },
+ {
+  "id": 62,
+  "en": "FREEBOARD",
+  "es": "Francobordo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 23
+ },
+ {
+  "id": 63,
+  "en": "GALLEY",
+  "es": "Cocina",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 24
+ },
+ {
+  "id": 64,
+  "en": "GANGWAY",
+  "es": "Pasarela",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 25
+ },
+ {
+  "id": 65,
+  "en": "GEAR",
+  "es": "Aparejo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 26
+ },
+ {
+  "id": 66,
+  "en": "GIVE-WAY VESSEL",
+  "es": "Buque sin preferencia",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 27
+ },
+ {
+  "id": 67,
+  "en": "GROUND SPEED",
+  "es": "Velocidad sobre el fondo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 28
+ },
+ {
+  "id": 68,
+  "en": "HAMPERED VESSEL",
+  "es": "Buque con maniobra restringida",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 29,
+  "nota": "En los exámenes de CY aparece como «Buque impedido»."
+ },
+ {
+  "id": 69,
+  "en": "HARD-A-PORT",
+  "es": "Todo a babor",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 30
+ },
+ {
+  "id": 70,
+  "en": "HATCH",
+  "es": "Escotilla",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 31
+ },
+ {
+  "id": 71,
+  "en": "HEAD LINE",
+  "es": "Largo de proa",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 32
+ },
+ {
+  "id": 72,
+  "en": "HEADING",
+  "es": "Rumbo",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 33
+ },
+ {
+  "id": 73,
+  "en": "HEADWAY",
+  "es": "Arranque avante",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 34
+ },
+ {
+  "id": 74,
+  "en": "HEAVE UP",
+  "es": "Izar. Levar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 35
+ },
+ {
+  "id": 75,
+  "en": "HEEL",
+  "es": "Escora",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 36
+ },
+ {
+  "id": 76,
+  "en": "HELM",
+  "es": "Rueda. Timón",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 37
+ },
+ {
+  "id": 77,
+  "en": "HIGH SEA",
+  "es": "Mar arbolada",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 38
+ },
+ {
+  "id": 78,
+  "en": "HIGH WATER",
+  "es": "Pleamar",
+  "origen": "libro",
+  "pagina": 1,
+  "bloque": 2,
+  "fila": 39
+ },
+ {
+  "id": 79,
+  "en": "HITCH",
+  "es": "Nudo (en un cabo)",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 1
+ },
+ {
+  "id": 80,
+  "en": "HOIST",
+  "es": "Izar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 2
+ },
+ {
+  "id": 81,
+  "en": "HOLD",
+  "es": "Bodega",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 3
+ },
+ {
+  "id": 82,
+  "en": "HULL",
+  "es": "Casco",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 4
+ },
+ {
+  "id": 83,
+  "en": "INTERCOASTAL WATERWAY",
+  "es": "Aguas interiores",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 5,
+  "nota": "Término impreso en dos líneas (INTERCOASTAL / WATERWAY)."
+ },
+ {
+  "id": 84,
+  "en": "JETTISON",
+  "es": "Tirar la carga al mar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 6
+ },
+ {
+  "id": 85,
+  "en": "JETTY",
+  "es": "Malecón",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 7
+ },
+ {
+  "id": 86,
+  "en": "KEEL",
+  "es": "Quilla",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 8
+ },
+ {
+  "id": 87,
+  "en": "KNOT",
+  "es": "Nudo (velocidad)",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 9
+ },
+ {
+  "id": 88,
+  "en": "LADDER",
+  "es": "Escala",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 10
+ },
+ {
+  "id": 89,
+  "en": "LEAD",
+  "es": "Gatera",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 11
+ },
+ {
+  "id": 90,
+  "en": "LEADING LINE",
+  "es": "Enfilación",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 12
+ },
+ {
+  "id": 91,
+  "en": "LEAK",
+  "es": "Fuga",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 13
+ },
+ {
+  "id": 92,
+  "en": "LEE",
+  "es": "Sotavento",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 14
+ },
+ {
+  "id": 93,
+  "en": "LEEWARD",
+  "es": "A sotavento",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 15
+ },
+ {
+  "id": 94,
+  "en": "LEEWAY",
+  "es": "Abatimiento. Deriva",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 16
+ },
+ {
+  "id": 95,
+  "en": "LENGTH OVER ALL",
+  "es": "Eslora",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 17
+ },
+ {
+  "id": 96,
+  "en": "LET GO",
+  "es": "Largar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 18
+ },
+ {
+  "id": 97,
+  "en": "LINE",
+  "es": "Amarra",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 19
+ },
+ {
+  "id": 98,
+  "en": "LIST",
+  "es": "Escora",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 20
+ },
+ {
+  "id": 99,
+  "en": "LOCK",
+  "es": "Esclusa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 21
+ },
+ {
+  "id": 100,
+  "en": "LOG",
+  "es": "Corredera",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 22
+ },
+ {
+  "id": 101,
+  "en": "LOOK OUT",
+  "es": "Vigilar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 23
+ },
+ {
+  "id": 102,
+  "en": "LOW WATER",
+  "es": "Bajamar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 24
+ },
+ {
+  "id": 103,
+  "en": "MIDSHIP",
+  "es": "A la vía",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 25
+ },
+ {
+  "id": 104,
+  "en": "MODERATE SEA",
+  "es": "Mar fuerte",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 26
+ },
+ {
+  "id": 105,
+  "en": "MOORING",
+  "es": "Amarre",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 27
+ },
+ {
+  "id": 106,
+  "en": "MUSTER",
+  "es": "Inspección",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 28
+ },
+ {
+  "id": 107,
+  "en": "OVERTAKE",
+  "es": "Alcanzar. Adelantar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 29
+ },
+ {
+  "id": 108,
+  "en": "PHENOMENAL SEA",
+  "es": "Mar enorme",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 30
+ },
+ {
+  "id": 109,
+  "en": "PIER",
+  "es": "Espigón",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 31,
+  "nota": "En los exámenes de CY aparece traducido como «Muelle»."
+ },
+ {
+  "id": 110,
+  "en": "PORT",
+  "es": "Babor. Puerto",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 32
+ },
+ {
+  "id": 111,
+  "en": "PORT BOW",
+  "es": "Amura de babor",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 33
+ },
+ {
+  "id": 112,
+  "en": "PRIVILEGED VESSEL",
+  "es": "Buque preferente",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 34,
+  "nota": "Corregido por el usuario: en el libro está impreso PRIVELEGED VESSEL (errata)."
+ },
+ {
+  "id": 113,
+  "en": "QUARTER",
+  "es": "Aleta",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 35
+ },
+ {
+  "id": 114,
+  "en": "RAFT",
+  "es": "Balsa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 36
+ },
+ {
+  "id": 115,
+  "en": "REEFER",
+  "es": "Buque frigorífico",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 37
+ },
+ {
+  "id": 116,
+  "en": "RIG",
+  "es": "Aparejar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 38
+ },
+ {
+  "id": 117,
+  "en": "RIPPLED SEA",
+  "es": "Mar rizada",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 39
+ },
+ {
+  "id": 118,
+  "en": "ROUGH SEA",
+  "es": "Mar gruesa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 1,
+  "fila": 40
+ },
+ {
+  "id": 119,
+  "en": "RUDDER",
+  "es": "Timón",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 1
+ },
+ {
+  "id": 120,
+  "en": "SCREW",
+  "es": "Hélice",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 2
+ },
+ {
+  "id": 121,
+  "en": "SCUPPER",
+  "es": "Imbornal",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 3
+ },
+ {
+  "id": 122,
+  "en": "SEA ROOM",
+  "es": "Resguardo",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 4
+ },
+ {
+  "id": 123,
+  "en": "SEAWORTHY",
+  "es": "En condiciones de navegar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 5
+ },
+ {
+  "id": 124,
+  "en": "SHACKLE",
+  "es": "Grillete",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 6
+ },
+ {
+  "id": 125,
+  "en": "SHOAL",
+  "es": "Bajo fondo",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 7
+ },
+ {
+  "id": 126,
+  "en": "SINK",
+  "es": "Irse a pique",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 8
+ },
+ {
+  "id": 127,
+  "en": "SLACK",
+  "es": "Arriar. Amollar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 9
+ },
+ {
+  "id": 128,
+  "en": "SLICK",
+  "es": "Mancha flotante",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 10
+ },
+ {
+  "id": 129,
+  "en": "SLIGHT SEA",
+  "es": "Marejada",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 11
+ },
+ {
+  "id": 130,
+  "en": "SMOOTH SEA",
+  "es": "Marejadilla",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 12
+ },
+ {
+  "id": 131,
+  "en": "SQUALL",
+  "es": "Chubasco",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 13
+ },
+ {
+  "id": 132,
+  "en": "SQUARE KNOT",
+  "es": "Nudo llano",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 14
+ },
+ {
+  "id": 133,
+  "en": "STAND-ON VESSEL",
+  "es": "Buque preferente",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 15
+ },
+ {
+  "id": 134,
+  "en": "STARBOARD",
+  "es": "Estribor",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 16
+ },
+ {
+  "id": 135,
+  "en": "STEER",
+  "es": "Gobernar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 17
+ },
+ {
+  "id": 136,
+  "en": "STEERAGE WAY",
+  "es": "Arrancada",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 18
+ },
+ {
+  "id": 137,
+  "en": "STEM",
+  "es": "Roda",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 19
+ },
+ {
+  "id": 138,
+  "en": "STERN",
+  "es": "Popa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 20
+ },
+ {
+  "id": 139,
+  "en": "STERN LINE",
+  "es": "Largo de popa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 21
+ },
+ {
+  "id": 140,
+  "en": "STOW",
+  "es": "Estibar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 22
+ },
+ {
+  "id": 141,
+  "en": "SWAMP",
+  "es": "Inundar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 23
+ },
+ {
+  "id": 142,
+  "en": "SWELL",
+  "es": "Marejada",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 24
+ },
+ {
+  "id": 143,
+  "en": "TIDE",
+  "es": "Marea",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 25
+ },
+ {
+  "id": 144,
+  "en": "TOW",
+  "es": "Remolcar",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 26
+ },
+ {
+  "id": 145,
+  "en": "TRIM",
+  "es": "Asiento",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 27
+ },
+ {
+  "id": 146,
+  "en": "TUG",
+  "es": "Remolcador",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 28
+ },
+ {
+  "id": 147,
+  "en": "UNDER WAY",
+  "es": "Buque en movimiento",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 29
+ },
+ {
+  "id": 148,
+  "en": "VEERING",
+  "es": "Rolar el viento en el sentido de las agujas del reloj",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 30
+ },
+ {
+  "id": 149,
+  "en": "VERY HIGH SEA",
+  "es": "Mar montañosa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 31
+ },
+ {
+  "id": 150,
+  "en": "VERY ROUGH SEA",
+  "es": "Mar muy gruesa",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 32
+ },
+ {
+  "id": 151,
+  "en": "WAKE",
+  "es": "Estela",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 33
+ },
+ {
+  "id": 152,
+  "en": "WATERLINE",
+  "es": "Línea de flotación",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 34
+ },
+ {
+  "id": 153,
+  "en": "WEIGH ANCHOR",
+  "es": "Levar ancla",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 35
+ },
+ {
+  "id": 154,
+  "en": "WINDLASS",
+  "es": "Molinete",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 36
+ },
+ {
+  "id": 155,
+  "en": "WINDWARD",
+  "es": "Barlovento",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 37
+ },
+ {
+  "id": 156,
+  "en": "WRECK",
+  "es": "Naufragio",
+  "origen": "libro",
+  "pagina": 2,
+  "bloque": 2,
+  "fila": 38
+ },
+ {
+  "id": 157,
+  "en": "LIFEBOAT",
+  "es": "Bote salvavidas",
+  "origen": "examen"
+ },
+ {
+  "id": 158,
+  "en": "LIFERAFT",
+  "es": "Balsa salvavidas",
+  "origen": "examen"
+ },
+ {
+  "id": 159,
+  "en": "LIFEJACKET",
+  "es": "Chaleco salvavidas",
+  "origen": "examen"
+ },
+ {
+  "id": 160,
+  "en": "EMBARKATION STATION",
+  "es": "Puesto de embarco",
+  "origen": "examen"
+ },
+ {
+  "id": 161,
+  "en": "EMBARKATION DECK",
+  "es": "Cubierta de embarco",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 162,
+  "en": "ASSEMBLY STATION",
+  "es": "Puesto de reunión",
+  "origen": "examen"
+ },
+ {
+  "id": 163,
+  "en": "GENERAL EMERGENCY ALARM",
+  "es": "Alarma general de emergencia",
+  "origen": "examen"
+ },
+ {
+  "id": 164,
+  "en": "SHORT BLAST",
+  "es": "Pitada corta",
+  "origen": "examen"
+ },
+ {
+  "id": 165,
+  "en": "PROLONGED BLAST",
+  "es": "Pitada larga",
+  "origen": "examen"
+ },
+ {
+  "id": 166,
+  "en": "DECK",
+  "es": "Cubierta",
+  "origen": "examen"
+ },
+ {
+  "id": 167,
+  "en": "GRIPES",
+  "es": "Trincas (de un bote salvavidas)",
+  "origen": "examen"
+ },
+ {
+  "id": 168,
+  "en": "SLIP GEAR",
+  "es": "Mecanismo de arriado",
+  "origen": "examen"
+ },
+ {
+  "id": 169,
+  "en": "DRAIN PLUG",
+  "es": "Espiche",
+  "origen": "examen"
+ },
+ {
+  "id": 170,
+  "en": "BILGE PUMP",
+  "es": "Bomba de sentina",
+  "origen": "examen"
+ },
+ {
+  "id": 171,
+  "en": "STEERING GEAR",
+  "es": "Sistema de gobierno",
+  "origen": "examen"
+ },
+ {
+  "id": 172,
+  "en": "HAWSE PIPE",
+  "es": "Escobén",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 173,
+  "en": "PROPELLER",
+  "es": "Hélice",
+  "origen": "examen"
+ },
+ {
+  "id": 174,
+  "en": "PUT IN GEAR",
+  "es": "Embragar",
+  "origen": "examen"
+ },
+ {
+  "id": 175,
+  "en": "MAIN ENGINE",
+  "es": "Máquina principal",
+  "origen": "examen"
+ },
+ {
+  "id": 176,
+  "en": "AUXILIARY ENGINE",
+  "es": "Máquina auxiliar",
+  "origen": "examen"
+ },
+ {
+  "id": 177,
+  "en": "ENGINE ROOM",
+  "es": "Cámara de máquinas",
+  "origen": "examen"
+ },
+ {
+  "id": 178,
+  "en": "SHUT DOWN",
+  "es": "Parar (una máquina)",
+  "origen": "examen"
+ },
+ {
+  "id": 179,
+  "en": "SWITCH ON",
+  "es": "Encender",
+  "origen": "examen"
+ },
+ {
+  "id": 180,
+  "en": "OPENINGS",
+  "es": "Aberturas",
+  "origen": "examen"
+ },
+ {
+  "id": 181,
+  "en": "CABIN",
+  "es": "Camarote",
+  "origen": "examen"
+ },
+ {
+  "id": 182,
+  "en": "DECK LIGHTING",
+  "es": "Luces de cubierta",
+  "origen": "examen"
+ },
+ {
+  "id": 183,
+  "en": "OUTBOARD LIGHTING",
+  "es": "Luces exteriores",
+  "origen": "examen"
+ },
+ {
+  "id": 184,
+  "en": "SEARCH LIGHT",
+  "es": "Luz de búsqueda",
+  "origen": "examen"
+ },
+ {
+  "id": 185,
+  "en": "NAVIGATION LIGHTS",
+  "es": "Luces de navegación",
+  "origen": "examen"
+ },
+ {
+  "id": 186,
+  "en": "ALL-ROUND LIGHT",
+  "es": "Luz todo horizonte",
+  "origen": "examen"
+ },
+ {
+  "id": 187,
+  "en": "SHAPE",
+  "es": "Marca",
+  "origen": "examen"
+ },
+ {
+  "id": 188,
+  "en": "BELL",
+  "es": "Campana",
+  "origen": "examen"
+ },
+ {
+  "id": 189,
+  "en": "GONG",
+  "es": "Gong",
+  "origen": "examen"
+ },
+ {
+  "id": 190,
+  "en": "DIRECTIONAL WHISTLE",
+  "es": "Pito direccional",
+  "origen": "examen"
+ },
+ {
+  "id": 191,
+  "en": "END-OF-COMMUNICATION SIGNAL",
+  "es": "Señal de fin de comunicación",
+  "origen": "examen"
+ },
+ {
+  "id": 192,
+  "en": "MESSAGE MARKERS",
+  "es": "Indicadores de mensaje",
+  "origen": "examen"
+ },
+ {
+  "id": 193,
+  "en": "ADVICE",
+  "es": "Recomendación",
+  "origen": "examen"
+ },
+ {
+  "id": 194,
+  "en": "WARNING",
+  "es": "Aviso",
+  "origen": "examen"
+ },
+ {
+  "id": 195,
+  "en": "INSTRUCTION",
+  "es": "Instrucción",
+  "origen": "examen"
+ },
+ {
+  "id": 196,
+  "en": "REQUEST",
+  "es": "Petición",
+  "origen": "examen"
+ },
+ {
+  "id": 197,
+  "en": "INTENTION",
+  "es": "Intención",
+  "origen": "examen"
+ },
+ {
+  "id": 198,
+  "en": "NINER",
+  "es": "Nueve (pronunciación del número 9 en comunicaciones marítimas)",
+  "origen": "examen"
+ },
+ {
+  "id": 199,
+  "en": "DISTRESS ALERT",
+  "es": "Alerta de socorro",
+  "origen": "examen"
+ },
+ {
+  "id": 200,
+  "en": "ACKNOWLEDGE",
+  "es": "Acusar recibo",
+  "origen": "examen"
+ },
+ {
+  "id": 201,
+  "en": "RELAY",
+  "es": "Retransmisión",
+  "origen": "examen"
+ },
+ {
+  "id": 202,
+  "en": "SHIP",
+  "es": "Buque",
+  "origen": "examen"
+ },
+ {
+  "id": 203,
+  "en": "SEAGOING VESSEL",
+  "es": "Buque de navegación marítima",
+  "origen": "examen"
+ },
+ {
+  "id": 204,
+  "en": "VESSEL AT ANCHOR",
+  "es": "Buque fondeado",
+  "origen": "examen"
+ },
+ {
+  "id": 205,
+  "en": "NOT UNDER COMMAND",
+  "es": "Sin gobierno",
+  "origen": "examen"
+ },
+ {
+  "id": 206,
+  "en": "DISABLED",
+  "es": "Impedido",
+  "origen": "examen"
+ },
+ {
+  "id": 207,
+  "en": "VESSEL CONSTRAINED BY HER DRAFT",
+  "es": "Buque restringido por su calado",
+  "origen": "examen"
+ },
+ {
+  "id": 208,
+  "en": "LIGHT VESSEL",
+  "es": "Buque faro",
+  "origen": "examen"
+ },
+ {
+  "id": 209,
+  "en": "HYDROFOIL",
+  "es": "Aliscafo",
+  "origen": "examen"
+ },
+ {
+  "id": 210,
+  "en": "AIR-CUSHION VEHICLE",
+  "es": "Aerodeslizador",
+  "origen": "examen"
+ },
+ {
+  "id": 211,
+  "en": "SUBMERSIBLE",
+  "es": "Sumergible",
+  "origen": "examen"
+ },
+ {
+  "id": 212,
+  "en": "FLOATING CRAFT",
+  "es": "Artefacto flotante",
+  "origen": "examen"
+ },
+ {
+  "id": 213,
+  "en": "FLOATING PLATFORM",
+  "es": "Plataforma flotante",
+  "origen": "examen"
+ },
+ {
+  "id": 214,
+  "en": "SEABED",
+  "es": "Fondo marino",
+  "origen": "examen"
+ },
+ {
+  "id": 215,
+  "en": "SEAFARER",
+  "es": "Gente de mar",
+  "origen": "examen"
+ },
+ {
+  "id": 216,
+  "en": "SPRINKLER",
+  "es": "Rociador",
+  "origen": "examen"
+ },
+ {
+  "id": 217,
+  "en": "UPPERMOST CONTINUOUS DECK",
+  "es": "Cubierta corrida más elevada",
+  "origen": "examen"
+ },
+ {
+  "id": 218,
+  "en": "CENTRELINE KEELSON",
+  "es": "Quilla vertical",
+  "origen": "examen"
+ },
+ {
+  "id": 219,
+  "en": "DRYDOCKING",
+  "es": "Entrada en dique seco",
+  "origen": "examen"
+ },
+ {
+  "id": 220,
+  "en": "HIGH SEAS",
+  "es": "Alta mar",
+  "origen": "examen"
+ },
+ {
+  "id": 221,
+  "en": "NARROW CHANNEL",
+  "es": "Canal angosto",
+  "origen": "examen"
+ },
+ {
+  "id": 222,
+  "en": "ROADSTEAD",
+  "es": "Rada",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 223,
+  "en": "TRAFFIC LANE",
+  "es": "Vía de circulación",
+  "origen": "examen"
+ },
+ {
+  "id": 224,
+  "en": "TRAFFIC CLEARANCE",
+  "es": "Autorización de tráfico",
+  "origen": "examen"
+ },
+ {
+  "id": 225,
+  "en": "COLLISION",
+  "es": "Abordaje",
+  "origen": "examen"
+ },
+ {
+  "id": 226,
+  "en": "RISK OF COLLISION",
+  "es": "Riesgo de abordaje",
+  "origen": "examen"
+ },
+ {
+  "id": 227,
+  "en": "GIVE WAY",
+  "es": "Ceder el paso",
+  "origen": "examen"
+ },
+ {
+  "id": 228,
+  "en": "KEEP CLEAR",
+  "es": "Mantenerse apartado",
+  "origen": "examen"
+ },
+ {
+  "id": 229,
+  "en": "KEEP SHARP LOOKOUT",
+  "es": "Reforzar la vigilancia",
+  "origen": "examen"
+ },
+ {
+  "id": 230,
+  "en": "STAND BY",
+  "es": "Preparados. Prepararse",
+  "origen": "examen"
+ },
+ {
+  "id": 231,
+  "en": "MAKE FAST",
+  "es": "Hacer firme",
+  "origen": "examen"
+ },
+ {
+  "id": 232,
+  "en": "MAKING WAY",
+  "es": "Llevar arrancada",
+  "origen": "examen"
+ },
+ {
+  "id": 233,
+  "en": "GET UNDERWAY",
+  "es": "Zarpar",
+  "origen": "examen"
+ },
+ {
+  "id": 234,
+  "en": "TO BERTH",
+  "es": "Atracar",
+  "origen": "examen"
+ },
+ {
+  "id": 235,
+  "en": "DROP BACK",
+  "es": "Aumentar la distancia respecto al buque de delante (alejarse)",
+  "origen": "examen"
+ },
+ {
+  "id": 236,
+  "en": "MEET HER",
+  "es": "Aguantar (reducir la caída de la proa en un giro)",
+  "origen": "examen"
+ },
+ {
+  "id": 237,
+  "en": "ALTERATION TO STARBOARD",
+  "es": "Caída a estribor",
+  "origen": "examen"
+ },
+ {
+  "id": 238,
+  "en": "DRIFT ANGLE",
+  "es": "Ángulo de deriva",
+  "origen": "examen"
+ },
+ {
+  "id": 239,
+  "en": "COURSE MADE GOOD",
+  "es": "Rumbo efectivo",
+  "origen": "examen"
+ },
+ {
+  "id": 240,
+  "en": "CLOSEST POINT OF APPROACH (CPA)",
+  "es": "Punto de aproximación máxima",
+  "origen": "examen"
+ },
+ {
+  "id": 241,
+  "en": "CRASH-STOP",
+  "es": "Parada de emergencia",
+  "origen": "examen"
+ },
+ {
+  "id": 242,
+  "en": "CONSTANT BEARING",
+  "es": "Demora constante",
+  "origen": "examen"
+ },
+ {
+  "id": 243,
+  "en": "RELATIVE BEARING",
+  "es": "Marcación",
+  "origen": "examen"
+ },
+ {
+  "id": 244,
+  "en": "WAYPOINT",
+  "es": "Punto de control de derrota",
+  "origen": "examen"
+ },
+ {
+  "id": 245,
+  "en": "EVEN KEEL",
+  "es": "Aguas iguales",
+  "origen": "examen"
+ },
+ {
+  "id": 246,
+  "en": "AIR DRAFT",
+  "es": "Guinda",
+  "origen": "examen"
+ },
+ {
+  "id": 247,
+  "en": "STARBOARD BOW",
+  "es": "Amura de estribor",
+  "origen": "examen"
+ },
+ {
+  "id": 248,
+  "en": "PORT QUARTER",
+  "es": "Aleta de babor",
+  "origen": "examen"
+ },
+ {
+  "id": 249,
+  "en": "SAILING DIRECTIONS",
+  "es": "Derrotero",
+  "origen": "examen"
+ },
+ {
+  "id": 250,
+  "en": "WEATHER-ROUTEING",
+  "es": "Derrota óptima recomendada por los servicios meteorológicos",
+  "origen": "examen"
+ },
+ {
+  "id": 251,
+  "en": "ETA",
+  "es": "Hora estimada de llegada",
+  "origen": "examen"
+ },
+ {
+  "id": 252,
+  "en": "VHF",
+  "es": "Frecuencia muy alta",
+  "origen": "examen"
+ },
+ {
+  "id": 253,
+  "en": "MMSI",
+  "es": "Identidad del servicio móvil marítimo",
+  "origen": "examen"
+ },
+ {
+  "id": 254,
+  "en": "AIS",
+  "es": "Sistema de identificación automática",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 255,
+  "en": "ECDIS",
+  "es": "SIVCE: sistema de información y visualización de cartas electrónicas",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 256,
+  "en": "ENFORCEMENT",
+  "es": "Cumplimiento",
+  "origen": "examen"
+ },
+ {
+  "id": 257,
+  "en": "DANGEROUS GOODS",
+  "es": "Mercancías peligrosas",
+  "origen": "examen"
+ },
+ {
+  "id": 258,
+  "en": "BILL OF LADING",
+  "es": "Conocimiento de embarque",
+  "origen": "examen"
+ },
+ {
+  "id": 259,
+  "en": "CHARTER PARTY",
+  "es": "Póliza de fletamento",
+  "origen": "examen"
+ },
+ {
+  "id": 260,
+  "en": "LETTER OF INDEMNITY",
+  "es": "Carta de garantía",
+  "origen": "examen"
+ },
+ {
+  "id": 261,
+  "en": "BLIZZARD",
+  "es": "Ventisca",
+  "origen": "examen"
+ },
+ {
+  "id": 262,
+  "en": "DRIZZLE",
+  "es": "Llovizna",
+  "origen": "examen"
+ },
+ {
+  "id": 263,
+  "en": "SLEET",
+  "es": "Aguanieve",
+  "origen": "examen"
+ },
+ {
+  "id": 264,
+  "en": "DEW POINT",
+  "es": "Punto de rocío",
+  "origen": "examen"
+ },
+ {
+  "id": 265,
+  "en": "MIST",
+  "es": "Bruma",
+  "origen": "examen"
+ },
+ {
+  "id": 266,
+  "en": "VISIBILITY",
+  "es": "Visibilidad",
+  "origen": "examen"
+ },
+ {
+  "id": 267,
+  "en": "GALE",
+  "es": "Temporal",
+  "origen": "examen"
+ },
+ {
+  "id": 268,
+  "en": "STORM",
+  "es": "Tempestad",
+  "origen": "examen"
+ },
+ {
+  "id": 269,
+  "en": "BEAUFORT SCALE",
+  "es": "Escala Beaufort",
+  "origen": "examen"
+ },
+ {
+  "id": 270,
+  "en": "FORECAST",
+  "es": "Pronóstico",
+  "origen": "examen"
+ },
+ {
+  "id": 271,
+  "en": "SYNOPSIS",
+  "es": "Sinopsis",
+  "origen": "examen"
+ },
+ {
+  "id": 272,
+  "en": "OFFSHORE",
+  "es": "Mar adentro",
+  "origen": "examen"
+ },
+ {
+  "id": 273,
+  "en": "VICINITY",
+  "es": "Proximidades",
+  "origen": "examen"
+ },
+ {
+  "id": 274,
+  "en": "UNCHARTED",
+  "es": "No señalado en las cartas",
+  "origen": "examen"
+ },
+ {
+  "id": 275,
+  "en": "REEF",
+  "es": "Arrecife",
+  "origen": "examen"
+ },
+ {
+  "id": 276,
+  "en": "ROCKS",
+  "es": "Rocas",
+  "origen": "examen"
+ },
+ {
+  "id": 277,
+  "en": "ICE",
+  "es": "Hielo",
+  "origen": "examen"
+ },
+ {
+  "id": 278,
+  "en": "MINE",
+  "es": "Mina",
+  "origen": "examen"
+ },
+ {
+  "id": 279,
+  "en": "OBSTRUCTION",
+  "es": "Obstrucción",
+  "origen": "examen"
+ },
+ {
+  "id": 280,
+  "en": "DANGEROUS WRECK",
+  "es": "Restos peligrosos de naufragio",
+  "origen": "examen"
+ },
+ {
+  "id": 281,
+  "en": "SUPERBUOY",
+  "es": "Superboya",
+  "origen": "examen"
+ },
+ {
+  "id": 282,
+  "en": "CONTAINER",
+  "es": "Contenedor",
+  "origen": "examen"
+ },
+ {
+  "id": 283,
+  "en": "UNLIT",
+  "es": "Apagado. Sin iluminar",
+  "origen": "examen"
+ },
+ {
+  "id": 284,
+  "en": "UNRELIABLE",
+  "es": "No fiable",
+  "origen": "examen"
+ },
+ {
+  "id": 285,
+  "en": "OFF STATION",
+  "es": "Fuera de su lugar habitual",
+  "origen": "examen"
+ },
+ {
+  "id": 286,
+  "en": "MISSING",
+  "es": "Desaparecido",
+  "origen": "examen"
+ },
+ {
+  "id": 287,
+  "en": "DEFINITELY WITHDRAWN",
+  "es": "Definitivamente retirado",
+  "origen": "examen"
+ },
+ {
+  "id": 288,
+  "en": "FLOODING",
+  "es": "Inundación",
+  "origen": "examen"
+ },
+ {
+  "id": 289,
+  "en": "BELOW WATER LINE",
+  "es": "Por debajo de la línea de flotación",
+  "origen": "examen"
+ },
+ {
+  "id": 290,
+  "en": "DANGER OF CAPSIZING",
+  "es": "Peligro de zozobra",
+  "origen": "examen"
+ },
+ {
+  "id": 291,
+  "en": "SINKING",
+  "es": "Hundimiento",
+  "origen": "examen"
+ },
+ {
+  "id": 292,
+  "en": "FIRE",
+  "es": "Incendio",
+  "origen": "examen"
+ },
+ {
+  "id": 293,
+  "en": "EXPLOSION",
+  "es": "Explosión",
+  "origen": "examen"
+ },
+ {
+  "id": 294,
+  "en": "BLACKOUT",
+  "es": "Parada total",
+  "origen": "examen"
+ },
+ {
+  "id": 295,
+  "en": "REFLOAT",
+  "es": "Poner a flote",
+  "origen": "examen",
+  "revisar": true
+ },
+ {
+  "id": 296,
+  "en": "DREDGING OF ANCHOR",
+  "es": "Arrastre del ancla",
+  "origen": "examen"
+ },
+ {
+  "id": 297,
+  "en": "PERSON OVERBOARD",
+  "es": "Persona por la borda",
+  "origen": "examen"
+ },
+ {
+  "id": 298,
+  "en": "TOWING",
+  "es": "Remolque",
+  "origen": "examen"
+ },
+ {
+  "id": 299,
+  "en": "FISHING GEAR",
+  "es": "Artes de pesca",
+  "origen": "examen"
+ },
+ {
+  "id": 300,
+  "en": "SPILL",
+  "es": "Derrame",
+  "origen": "examen"
+ },
+ {
+  "id": 301,
+  "en": "OIL SPILL",
+  "es": "Derrame de hidrocarburos",
+  "origen": "examen"
+ },
+ {
+  "id": 302,
+  "en": "CHEMICALS",
+  "es": "Productos químicos",
+  "origen": "examen"
+ },
+ {
+  "id": 303,
+  "en": "WASTE",
+  "es": "Desechos",
+  "origen": "examen"
+ }
+]

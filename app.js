@@ -54,16 +54,28 @@ function cargaExplicaciones() {
     .catch(() => { explicaciones = {}; });
 }
 
+// texto explicativo de una pregunta (las del juego de palabras lo llevan incorporado)
+function explicacionDe(q) {
+  return q.explicacion || (q.clave && explicaciones[q.clave]) || "";
+}
+
+// etiqueta de origen de una pregunta (examen y convocatoria, o juego de palabras)
+function etiquetaDe(q) {
+  return q.juego ? `${q.titulacion} · ${q.materia}`
+    : `${q.titulacion} · ${q.materia} · ${q.convocatoria} ${q.examen} #${q.numero}`;
+}
+
 function muestraExplicacion(q, esCorrecta) {
   const caja = document.getElementById("explicacion");
   caja.innerHTML = "";
-  const texto = q.clave && explicaciones[q.clave];
+  const texto = explicacionDe(q);
   if (!texto) {
     caja.classList.add("oculta");
     return;
   }
   const titulo = document.createElement("strong");
-  titulo.textContent = esCorrecta ? "¿Por qué es correcta?"
+  titulo.textContent = q.juego ? "Significado"
+    : esCorrecta ? "¿Por qué es correcta?"
     : `La correcta es la ${q.respuesta.toUpperCase()}. ¿Por qué?`;
   caja.appendChild(titulo);
   texto.split(/\n\s*\n/).forEach(parrafo => {
@@ -77,6 +89,28 @@ function muestraExplicacion(q, esCorrecta) {
 // materias marcadas por titulacion (por defecto todas)
 const materiasMarcadas = {};
 TITULACIONES.forEach(t => { materiasMarcadas[t] = new Set(ESTRUCTURA[t].map(m => m[0])); });
+
+// "Juego de palabras en inglés" (solo CY): preguntas generadas a partir del vocabulario
+// ingles_nautico.json, sin preguntas de examen; excluye al resto de materias y al modo oficial
+const MATERIA_JUEGO = "Juego de palabras en inglés";
+let juegoPalabras = false;
+let materiasAntesJuego = null;    // materias marcadas antes de activar el juego (para restaurarlas)
+let vocabulario = null;           // [{id, en, es, origen, nota?}]
+let vocabularioEnCurso = null;
+
+function cargaVocabulario() {
+  if (vocabulario) return Promise.resolve(vocabulario);
+  if (!vocabularioEnCurso) {
+    vocabularioEnCurso = fetch(`${RUTA_DATOS}ingles_nautico.json`)
+      .then(r => {
+        if (!r.ok) throw new Error(`No se pudo cargar el vocabulario (HTTP ${r.status})`);
+        return r.json();
+      })
+      .then(data => { vocabulario = data; return data; })
+      .finally(() => { vocabularioEnCurso = null; });
+  }
+  return vocabularioEnCurso;
+}
 
 let modo = "total";               // "total" | "oficial"
 let numeroPreguntasElegido = 30;
@@ -151,6 +185,7 @@ function guardaPreferencias() {
       tits: titulacionesSeleccionadas(),
       materias: Object.fromEntries(TITULACIONES.map(t => [t, Array.from(materiasMarcadas[t])])),
       modo, n: numeroPreguntasElegido, reporte: modoReporte,
+      juego: juegoPalabras, antesJuego: materiasAntesJuego,
     }));
   } catch (e) { /* almacenamiento no disponible: se ignora */ }
 }
@@ -171,7 +206,42 @@ function cargaPreferencias() {
     if (p.modo === "oficial" || p.modo === "total") modo = p.modo;
     if (typeof p.n === "number") numeroPreguntasElegido = p.n;
     modoReporte = p.reporte === true;
+    juegoPalabras = p.juego === true;
+    materiasAntesJuego = p.antesJuego && typeof p.antesJuego === "object" ? p.antesJuego : null;
+    if (juegoPalabras && !(p.tits || []).includes("CY")) activaJuego(false);
   } catch (e) { /* preferencias corruptas: se ignoran */ }
+}
+
+// el juego solo existe dentro de CY
+function juegoActivo() {
+  return juegoPalabras && titulacionesSeleccionadas().includes("CY");
+}
+
+// activa o desactiva el juego: al activarlo se desmarcan todas las materias (y se guardan para
+// restaurarlas); al desactivarlo (p. ej. al quitar CY) se recuperan las que estaban marcadas
+function activaJuego(on) {
+  if (on === juegoPalabras) return;
+  juegoPalabras = on;
+  if (on) {
+    materiasAntesJuego = Object.fromEntries(TITULACIONES.map(t => [t, Array.from(materiasMarcadas[t])]));
+    TITULACIONES.forEach(t => { materiasMarcadas[t] = new Set(); });
+    modo = "total";
+  } else {
+    TITULACIONES.forEach(t => {
+      const previas = materiasAntesJuego && materiasAntesJuego[t];
+      const validas = new Set(ESTRUCTURA[t].map(m => m[0]));
+      const recuperadas = (previas || []).filter(m => validas.has(m));
+      materiasMarcadas[t] = new Set(recuperadas.length ? recuperadas : Array.from(validas));
+    });
+    materiasAntesJuego = null;
+  }
+}
+
+// el alumno elige una materia de examen mientras el juego estaba activo: el juego se desmarca
+// y la selección pasa a ser solo lo que elija a partir de ahora
+function abandonaJuego() {
+  juegoPalabras = false;
+  materiasAntesJuego = null;
 }
 
 // ---------- pantalla inicio ----------
@@ -216,6 +286,27 @@ function contarEnBanco(tit, materia) {
   return cuentaDistintas(datos.filter(q => q.materia === materia));
 }
 
+// casilla "Juego de palabras en inglés" del grupo CY
+function chipJuego() {
+  const label = document.createElement("label");
+  label.className = "chip chip-juego";
+  const input = document.createElement("input");
+  input.type = "checkbox";
+  input.checked = juegoActivo();
+  input.addEventListener("change", () => {
+    activaJuego(input.checked);
+    pintaMaterias();
+    actualizaResumen();
+    guardaPreferencias();
+  });
+  const span = document.createElement("span");
+  span.innerHTML = `${escapaHtml(MATERIA_JUEGO)}<small>vocabulario náutico inglés ↔ castellano, sin preguntas de examen` +
+    (vocabulario ? ` · ${vocabulario.length} términos` : "") + "</small>";
+  label.appendChild(input);
+  label.appendChild(span);
+  return label;
+}
+
 function pintaMaterias() {
   const cont = document.getElementById("bloque-materias");
   cont.innerHTML = "";
@@ -243,8 +334,11 @@ function pintaMaterias() {
       input.type = "checkbox";
       input.checked = materiasMarcadas[tit].has(materia);
       input.addEventListener("change", () => {
+        const veniaDelJuego = juegoPalabras;
+        if (veniaDelJuego) abandonaJuego();
         if (input.checked) materiasMarcadas[tit].add(materia);
         else materiasMarcadas[tit].delete(materia);
+        if (veniaDelJuego) pintaMaterias();
         actualizaResumen();
         guardaPreferencias();
       });
@@ -256,12 +350,14 @@ function pintaMaterias() {
       label.appendChild(span);
       chips.appendChild(label);
     });
+    if (tit === "CY") chips.appendChild(chipJuego());
     cont.appendChild(grupo);
   });
 
   cont.querySelectorAll(".link").forEach(btn => {
     btn.addEventListener("click", () => {
       const tit = btn.dataset.tit;
+      if (juegoPalabras) abandonaJuego();
       materiasMarcadas[tit] = btn.dataset.acc === "todas"
         ? new Set(ESTRUCTURA[tit].map(m => m[0])) : new Set();
       pintaMaterias();
@@ -283,12 +379,24 @@ function totalOficialSeleccion() {
 
 function actualizaResumen() {
   const el = document.getElementById("resumen-seleccion");
+  const juego = juegoActivo();
+  if (juego) modo = "total";   // el juego de palabras no sigue el examen oficial
   document.getElementById("opciones-n").classList.toggle("oculta", modo === "oficial");
-  document.querySelectorAll("#opciones-modo .n-btn").forEach(b =>
-    b.classList.toggle("n-btn-activo", b.dataset.modo === modo));
+  document.querySelectorAll("#opciones-modo .n-btn").forEach(b => {
+    b.classList.toggle("n-btn-activo", b.dataset.modo === modo);
+    if (b.dataset.modo === "oficial") {
+      b.disabled = juego;
+      b.title = juego ? "No disponible en el juego de palabras en inglés" : "";
+    }
+  });
   document.querySelectorAll("#opciones-n .n-btn").forEach(b =>
     b.classList.toggle("n-btn-activo", parseInt(b.dataset.n, 10) === numeroPreguntasElegido));
-  if (modo === "oficial") {
+  if (juego) {
+    const total = vocabulario ? vocabulario.length : null;
+    const n = total === null ? null : (numeroPreguntasElegido === 0 ? total : Math.min(numeroPreguntasElegido, total));
+    el.textContent = "Juego de palabras en inglés: " + (n === null ? "preguntas" : `${n} preguntas`) +
+      " de 4 opciones, mezclando inglés → castellano y castellano → inglés. No usa preguntas de examen.";
+  } else if (modo === "oficial") {
     const aprobado = titulacionesSeleccionadas()
       .filter(t => ESTRUCTURA[t].every(m => materiasMarcadas[t].has(m[0])))
       .map(t => `${t} ${totalExamen(t)} preguntas, apto con ${CRITERIO[t].min} aciertos`);
@@ -316,8 +424,13 @@ function initPantallaInicio() {
       });
   });
 
+  cargaVocabulario()
+    .then(() => { pintaMaterias(); actualizaResumen(); })
+    .catch(err => console.error(err));
+
   document.querySelectorAll("#opciones-titulacion input").forEach(i => {
     i.addEventListener("change", () => {
+      if (juegoPalabras && !titulacionesSeleccionadas().includes("CY")) activaJuego(false);
       pintaMaterias();
       actualizaResumen();
       guardaPreferencias();
@@ -361,7 +474,8 @@ async function empezarTest() {
     errorEl.textContent = "Elige al menos una titulación.";
     return;
   }
-  if (!seleccion.some(t => materiasMarcadas[t].size > 0)) {
+  const juego = juegoActivo();
+  if (!juego && !seleccion.some(t => materiasMarcadas[t].size > 0)) {
     errorEl.textContent = "Marca al menos una materia.";
     return;
   }
@@ -371,9 +485,15 @@ async function empezarTest() {
   btn.textContent = "Cargando preguntas...";
 
   try {
-    await Promise.all(seleccion.map(cargaTitulacion));
-    cola = construyeCola(seleccion);
-    esExamenOficial = modo === "oficial";
+    if (juego) {
+      await cargaVocabulario();
+      cola = construyeColaJuego();
+      esExamenOficial = false;
+    } else {
+      await Promise.all(seleccion.map(cargaTitulacion));
+      cola = construyeCola(seleccion);
+      esExamenOficial = modo === "oficial";
+    }
     if (cola.length === 0) {
       errorEl.textContent = "No hay preguntas disponibles para esa selección.";
       return;
@@ -413,6 +533,71 @@ function construyeCola(seleccion) {
   pool = barajar(unicasPorGrupo(pool));
   const n = numeroPreguntasElegido === 0 ? pool.length : Math.min(numeroPreguntasElegido, pool.length);
   return pool.slice(0, n);
+}
+
+// ---------- juego de palabras en inglés ----------
+
+function sinTildes(s) {
+  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+// significados alternativos de una traduccion («Encallado. Varado» -> encallado, varado)
+function significados(es) {
+  return sinTildes(es.replace(/\([^)]*\)/g, "")).split(/[.\/]/).map(x => x.trim()).filter(Boolean);
+}
+
+// 3 distractores que no sean tambien correctos (que no compartan significado con el termino) y,
+// en lo posible, de longitud parecida
+function elegirDistractores(t, haciaCastellano) {
+  const propios = significados(t.es);
+  const texto = o => (haciaCastellano ? o.es : o.en);
+  const lon = texto(t).length;
+  const candidatos = vocabulario
+    .filter(o => o !== t && !significados(o.es).some(s => propios.includes(s)))
+    .map(o => ({ o, puntos: Math.abs(texto(o).length - lon) + Math.random() * 8 }))
+    .sort((a, b) => a.puntos - b.puntos);
+  const usados = new Set([texto(t)]);
+  const elegidos = [];
+  for (const { o } of candidatos) {
+    if (usados.has(texto(o))) continue;
+    usados.add(texto(o));
+    elegidos.push(o);
+    if (elegidos.length === 3) break;
+  }
+  return elegidos;
+}
+
+function preguntaDePalabra(t, haciaCastellano) {
+  const campo = haciaCastellano ? "es" : "en";
+  const barajadas = barajar([t, ...elegirDistractores(t, haciaCastellano)]);
+  const opciones = {};
+  barajadas.forEach((o, i) => { opciones["abcd"[i]] = o[campo]; });
+  let explicacion = `«${t.en}» significa «${t.es}».`;
+  if (t.nota) explicacion += `\n\nNota: ${t.nota}`;
+  return {
+    id: `PAL_${t.id}_${haciaCastellano ? "en-es" : "es-en"}`,
+    clave: `pal-${t.id}`,
+    juego: true,
+    titulacion: "CY",
+    materia: MATERIA_JUEGO,
+    convocatoria: "Vocabulario",
+    examen: t.origen === "examen" ? "de exámenes" : "del libro",
+    numero: t.id,
+    enunciado: haciaCastellano ? `¿Qué significa «${t.en}»?` : `¿Cómo se dice en inglés «${t.es}»?`,
+    opciones,
+    respuesta: "abcd"[barajadas.indexOf(t)].toUpperCase(),
+    explicacion,
+    requiere_anexo: false,
+    anexos: [],
+    carta_papel: false,
+  };
+}
+
+// una pregunta por termino, en un sentido u otro al azar
+function construyeColaJuego() {
+  const terminos = barajar(vocabulario);
+  const n = numeroPreguntasElegido === 0 ? terminos.length : Math.min(numeroPreguntasElegido, terminos.length);
+  return terminos.slice(0, n).map(t => preguntaDePalabra(t, Math.random() < 0.5));
 }
 
 // n preguntas del mismo examen (convocatoria + examen) entre los que tienen sus tablas
@@ -467,8 +652,7 @@ function renderPregunta() {
 
   document.getElementById("contador-pregunta").textContent =
     `Pregunta ${indiceActual + 1} de ${cola.length}`;
-  document.getElementById("etiqueta-origen").textContent =
-    `${q.titulacion} · ${q.materia} · ${q.convocatoria} ${q.examen} #${q.numero}`;
+  document.getElementById("etiqueta-origen").textContent = etiquetaDe(q);
   document.getElementById("puntuacion-parcial").textContent =
     `Aciertos: ${aciertos}/${contestadas}`;
 
@@ -661,13 +845,13 @@ function mostrarResultado() {
       const div = document.createElement("div");
       div.className = "fallada-item";
       div.innerHTML = `
-        <div class="meta">${q.titulacion} · ${escapaHtml(q.materia)} · ${q.convocatoria} ${q.examen} #${q.numero}</div>
+        <div class="meta">${escapaHtml(etiquetaDe(q))}</div>
         <div>${escapaHtml(q.enunciado)}</div>
         <div class="respuestas">
           Tu respuesta: <span class="tu">${f.elegida.toUpperCase()}) ${escapaHtml(q.opciones[f.elegida])}</span><br>
           Correcta: <span class="correcta-txt">${q.respuesta}) ${escapaHtml(q.opciones[q.respuesta.toLowerCase()])}</span>
-        </div>` + (q.clave && explicaciones[q.clave]
-          ? `<div class="expl-fallada">${escapaHtml(explicaciones[q.clave])}</div>` : "");
+        </div>` + (explicacionDe(q)
+          ? `<div class="expl-fallada">${escapaHtml(explicacionDe(q))}</div>` : "");
       lista.appendChild(div);
     });
   }
@@ -739,7 +923,7 @@ function guardaReporteActual() {
       id: q.id, clave: q.clave, titulacion: q.titulacion, materia: q.materia,
       convocatoria: q.convocatoria, examen: q.examen, numero: q.numero,
       enunciado: q.enunciado, opciones: q.opciones, respuesta: q.respuesta,
-      explicacion: (q.clave && explicaciones[q.clave]) || "",
+      explicacion: explicacionDe(q),
       tipos, comentario, fecha: new Date().toISOString(),
     };
     estado.textContent = "Reporte guardado ✓";
@@ -755,7 +939,8 @@ function generaInforme() {
   lista.forEach((r, i) => {
     lineas.push(`=== ${i + 1}/${lista.length} ===`);
     lineas.push(`ID: ${r.id} | clave: ${r.clave || "-"}`);
-    lineas.push(`${r.titulacion} · ${r.materia} · ${r.convocatoria} ${r.examen} #${r.numero}`);
+    lineas.push(r.materia === MATERIA_JUEGO ? `${r.titulacion} · ${r.materia} (término #${r.numero} del vocabulario)`
+      : `${r.titulacion} · ${r.materia} · ${r.convocatoria} ${r.examen} #${r.numero}`);
     lineas.push(`Error en: ${r.tipos.length ? r.tipos.join(", ") : "(sin indicar)"}`);
     lineas.push(`Comentario: ${r.comentario || "(sin comentario)"}`);
     lineas.push("--- Tal como se mostraba ---");
