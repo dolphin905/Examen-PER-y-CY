@@ -571,3 +571,7 @@ h1 {
 .chip-juego { border-style: dashed; }
 .n-btn:disabled { opacity: .4; cursor: not-allowed; }
 .n-btn:disabled:hover { border-color: inherit; }
+
+/* ---- fuente de los examenes ---- */
+
+.grupo-fuentes { margin-bottom: 14px; }

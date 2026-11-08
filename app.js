@@ -43,8 +43,12 @@ function minimoMateria(tit, materia) {
   return fila && fila.length > 2 ? { min: fila[2], de: fila[1] } : null;
 }
 
-const datosPorTitulacion = {};
-const cargaEnCurso = {};
+// Fuentes de los examenes (DGMM nacional y comunidades autonomas): cada titulacion tiene un
+// fichero por fuente; solo se cargan las que el alumno deja marcadas
+const DGMM = "DGMM (Nacional)";
+let fuentesDisponibles = {};          // tit -> [{slug, nombre, preguntas, grupos}]
+const fuentesDesmarcadas = new Set(); // slugs que el alumno ha quitado (por defecto, todas marcadas)
+const cacheFuentes = {};              // "TIT|slug" -> Promise de las preguntas usables
 let explicaciones = {};   // clave de pregunta -> texto (se rellena por tandas; puede estar incompleto)
 
 function cargaExplicaciones() {
@@ -61,8 +65,9 @@ function explicacionDe(q) {
 
 // etiqueta de origen de una pregunta (examen y convocatoria, o juego de palabras)
 function etiquetaDe(q) {
-  return q.juego ? `${q.titulacion} · ${q.materia}`
-    : `${q.titulacion} · ${q.materia} · ${q.convocatoria} ${q.examen} #${q.numero}`;
+  if (q.juego) return `${q.titulacion} · ${q.materia}`;
+  const fuente = q.procedencia && q.procedencia !== DGMM ? ` · ${q.procedencia}` : "";
+  return `${q.titulacion} · ${q.materia}${fuente} · ${q.convocatoria} ${q.examen} #${q.numero}`;
 }
 
 function muestraExplicacion(q, esCorrecta) {
@@ -162,21 +167,48 @@ function escapaHtml(s) {
   return d.innerHTML;
 }
 
+const datosCargados = {};   // "TIT|slug" -> preguntas ya descargadas
+
+function fuentesActivas(tit) {
+  return (fuentesDisponibles[tit] || []).filter(f => !fuentesDesmarcadas.has(f.slug));
+}
+
+function cargaFuente(tit, slug) {
+  const k = `${tit}|${slug}`;
+  if (!cacheFuentes[k]) {
+    cacheFuentes[k] = fetch(`${RUTA_DATOS}por_fuente/${tit}/${tit}_${slug}.json`)
+      .then(r => {
+        if (!r.ok) throw new Error(`No se pudo cargar ${tit} (${slug}): HTTP ${r.status}`);
+        return r.json();
+      })
+      .then(data => {
+        // las preguntas anuladas no tienen una respuesta correcta valida
+        const usable = data.filter(q => q.estado !== "anulada" && q.respuesta);
+        datosCargados[k] = usable;
+        return usable;
+      })
+      .catch(err => { delete cacheFuentes[k]; throw err; });
+  }
+  return cacheFuentes[k];
+}
+
+// carga (si hace falta) las fuentes marcadas de una titulacion
 async function cargaTitulacion(tit) {
-  if (datosPorTitulacion[tit]) return datosPorTitulacion[tit];
-  if (cargaEnCurso[tit]) return cargaEnCurso[tit];
-  cargaEnCurso[tit] = fetch(`${RUTA_DATOS}${tit}/${tit}_todas.json`)
-    .then(r => {
-      if (!r.ok) throw new Error(`No se pudo cargar ${tit} (HTTP ${r.status})`);
-      return r.json();
-    })
-    .then(data => {
-      // las preguntas anuladas no tienen una respuesta correcta valida
-      const usable = data.filter(q => q.estado !== "anulada" && q.respuesta);
-      datosPorTitulacion[tit] = usable;
-      return usable;
-    });
-  return cargaEnCurso[tit];
+  await Promise.all(fuentesActivas(tit).map(f => cargaFuente(tit, f.slug)));
+  return datosDe(tit);
+}
+
+// preguntas de una titulacion de las fuentes marcadas que ya estan cargadas
+function datosDe(tit) {
+  let todas = [];
+  fuentesActivas(tit).forEach(f => { todas = todas.concat(datosCargados[`${tit}|${f.slug}`] || []); });
+  return todas;
+}
+
+function cargaFuentesDisponibles() {
+  return fetch(`${RUTA_DATOS}fuentes.json`)
+    .then(r => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar fuentes.json"))))
+    .then(data => { fuentesDisponibles = data; });
 }
 
 function guardaPreferencias() {
@@ -186,6 +218,7 @@ function guardaPreferencias() {
       materias: Object.fromEntries(TITULACIONES.map(t => [t, Array.from(materiasMarcadas[t])])),
       modo, n: numeroPreguntasElegido, reporte: modoReporte,
       juego: juegoPalabras, antesJuego: materiasAntesJuego,
+      fuentesOff: Array.from(fuentesDesmarcadas),
     }));
   } catch (e) { /* almacenamiento no disponible: se ignora */ }
 }
@@ -206,6 +239,8 @@ function cargaPreferencias() {
     if (p.modo === "oficial" || p.modo === "total") modo = p.modo;
     if (typeof p.n === "number") numeroPreguntasElegido = p.n;
     modoReporte = p.reporte === true;
+    fuentesDesmarcadas.clear();
+    (Array.isArray(p.fuentesOff) ? p.fuentesOff : []).forEach(f => fuentesDesmarcadas.add(f));
     juegoPalabras = p.juego === true;
     materiasAntesJuego = p.antesJuego && typeof p.antesJuego === "object" ? p.antesJuego : null;
     if (juegoPalabras && !(p.tits || []).includes("CY")) activaJuego(false);
@@ -275,14 +310,94 @@ function unicasPorGrupo(pool, vistos) {
   return resultado;
 }
 
+// casillas de «Fuente de los exámenes» (selección múltiple): todas marcadas por defecto
+function pintaFuentes() {
+  const cont = document.getElementById("bloque-fuentes");
+  cont.innerHTML = "";
+  const seleccion = titulacionesSeleccionadas();
+  const porSlug = new Map();   // slug -> {nombre, n}
+  TITULACIONES.forEach(tit => (fuentesDisponibles[tit] || []).forEach(f => {
+    if (!porSlug.has(f.slug)) porSlug.set(f.slug, { nombre: f.nombre, n: 0 });
+    if (seleccion.includes(tit)) porSlug.get(f.slug).n += f.preguntas;
+  }));
+  if (porSlug.size <= 1) return;   // con una sola fuente no hay nada que elegir
+  const cab = document.createElement("div");
+  cab.className = "grupo-cab";
+  cab.innerHTML = `<strong>Fuente de los exámenes</strong>
+    <span class="grupo-info">${porSlug.size} fuentes</span>
+    <span class="grupo-acciones"><button type="button" class="link" data-acc="todas">todas</button> ·
+    <button type="button" class="link" data-acc="ninguna">ninguna</button></span>`;
+  const grupo = document.createElement("div");
+  grupo.className = "grupo-materias grupo-fuentes";
+  grupo.appendChild(cab);
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  porSlug.forEach((info, slug) => {
+    const label = document.createElement("label");
+    label.className = "chip";
+    const input = document.createElement("input");
+    input.type = "checkbox";
+    input.checked = !fuentesDesmarcadas.has(slug);
+    input.addEventListener("change", () => {
+      if (input.checked) fuentesDesmarcadas.delete(slug); else fuentesDesmarcadas.add(slug);
+      cambioDeFuentes();
+    });
+    const span = document.createElement("span");
+    span.innerHTML = `${escapaHtml(info.nombre)}<small>${info.n} preguntas${info.n === 0 ? " (de las titulaciones elegidas)" : ""}</small>`;
+    label.appendChild(input);
+    label.appendChild(span);
+    chips.appendChild(label);
+  });
+  grupo.appendChild(chips);
+  cont.appendChild(grupo);
+  cab.querySelectorAll(".link").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (btn.dataset.acc === "todas") fuentesDesmarcadas.clear();
+      else porSlug.forEach((_, slug) => fuentesDesmarcadas.add(slug));
+      cambioDeFuentes();
+    });
+  });
+}
+
+function cambioDeFuentes() {
+  pintaFuentes();
+  refrescaDatos();
+  pintaMaterias();
+  actualizaResumen();
+  guardaPreferencias();
+}
+
+// carga en segundo plano las fuentes marcadas de las titulaciones elegidas y refresca los contadores
+function refrescaDatos() {
+  TITULACIONES.forEach(tit => {
+    const tarjeta = document.querySelector(`.n-preguntas[data-tit="${tit}"]`);
+    if (!titulacionesSeleccionadas().includes(tit)) {
+      const grupos = fuentesActivas(tit).reduce((s, f) => s + f.grupos, 0);
+      if (tarjeta && fuentesDisponibles[tit]) tarjeta.textContent = `${grupos} preguntas`;
+      return;
+    }
+    if (tarjeta) tarjeta.textContent = "cargando…";
+    cargaTitulacion(tit)
+      .then(data => {
+        actualizaContadorTarjeta(tit, cuentaDistintas(data));
+        pintaMaterias(); // refresca los contadores "en el banco"
+      })
+      .catch(err => {
+        if (tarjeta) tarjeta.textContent = "error al cargar";
+        console.error(err);
+      });
+  });
+}
+
 function actualizaContadorTarjeta(tit, n) {
   const el = document.querySelector(`.n-preguntas[data-tit="${tit}"]`);
   if (el) el.textContent = `${n} preguntas`;
 }
 
 function contarEnBanco(tit, materia) {
-  const datos = datosPorTitulacion[tit];
-  if (!datos) return null;
+  const activas = fuentesActivas(tit);
+  if (activas.some(f => !datosCargados[`${tit}|${f.slug}`])) return null;
+  const datos = datosDe(tit);
   return cuentaDistintas(datos.filter(q => q.materia === materia));
 }
 
@@ -400,8 +515,13 @@ function actualizaResumen() {
     const aprobado = titulacionesSeleccionadas()
       .filter(t => ESTRUCTURA[t].every(m => materiasMarcadas[t].has(m[0])))
       .map(t => `${t} ${totalExamen(t)} preguntas, apto con ${CRITERIO[t].min} aciertos`);
-    el.textContent = `Saldrán ${totalOficialSeleccion()} preguntas, repartidas por materia como en el examen oficial.` +
-      (aprobado.length ? ` Examen completo: ${aprobado.join(" · ")}.` : "");
+    // los ejercicios de calculo y de carta necesitan las tablas del examen: solo las traen los del Ministerio
+    const sinTablas = titulacionesSeleccionadas().filter(t => materiasMarcadas[t].has(MATERIAS_CON_TABLAS[t]) &&
+      fuentesActivas(t).every(f => datosCargados[`${t}|${f.slug}`]) &&
+      !datosDe(t).some(q => q.materia === MATERIAS_CON_TABLAS[t]));
+    el.textContent = `Saldrán ${totalOficialSeleccion() - sinTablas.reduce((n, t) => n + (ESTRUCTURA[t].find(m => m[0] === MATERIAS_CON_TABLAS[t]) || [0, 0])[1], 0)} preguntas, repartidas por materia como en el examen oficial.` +
+      (aprobado.length && sinTablas.length === 0 ? ` Examen completo: ${aprobado.join(" · ")}.` : "") +
+      (sinTablas.length ? ` Con las fuentes elegidas no hay ejercicios de ${sinTablas.map(t => MATERIAS_CON_TABLAS[t].toLowerCase()).join(" ni de ")}: necesitan las tablas del examen y solo las traen los exámenes del Ministerio (DGMM).` : "");
   } else {
     el.textContent = "";
   }
@@ -411,18 +531,12 @@ function initPantallaInicio() {
   cargaPreferencias();
   cargaExplicaciones();
 
-  TITULACIONES.forEach(tit => {
-    cargaTitulacion(tit)
-      .then(data => {
-        actualizaContadorTarjeta(tit, cuentaDistintas(data));
-        pintaMaterias(); // refresca los contadores "en el banco"
-      })
-      .catch(err => {
-        const el = document.querySelector(`.n-preguntas[data-tit="${tit}"]`);
-        if (el) el.textContent = "error al cargar";
-        console.error(err);
-      });
-  });
+  cargaFuentesDisponibles()
+    .then(() => { pintaFuentes(); refrescaDatos(); pintaMaterias(); actualizaResumen(); })
+    .catch(err => {
+      document.querySelectorAll(".n-preguntas").forEach(el => { el.textContent = "error al cargar"; });
+      console.error(err);
+    });
 
   cargaVocabulario()
     .then(() => { pintaMaterias(); actualizaResumen(); })
@@ -431,6 +545,8 @@ function initPantallaInicio() {
   document.querySelectorAll("#opciones-titulacion input").forEach(i => {
     i.addEventListener("change", () => {
       if (juegoPalabras && !titulacionesSeleccionadas().includes("CY")) activaJuego(false);
+      pintaFuentes();
+      refrescaDatos();
       pintaMaterias();
       actualizaResumen();
       guardaPreferencias();
@@ -479,6 +595,10 @@ async function empezarTest() {
     errorEl.textContent = "Marca al menos una materia.";
     return;
   }
+  if (!juego && !seleccion.some(t => fuentesActivas(t).length > 0)) {
+    errorEl.textContent = "Marca al menos una fuente de exámenes.";
+    return;
+  }
 
   const btn = document.getElementById("btn-empezar");
   btn.disabled = true;
@@ -513,13 +633,20 @@ function construyeCola(seleccion) {
     // como el examen: por titulacion y materia, en el orden oficial
     const resultado = [];
     const vistos = new Set();   // el PNB esta dentro del PER: no repetir la misma pregunta
+    const temasUsados = new Set();   // en un examen real no salen dos preguntas del mismo tema
     seleccion.forEach(tit => {
       ESTRUCTURA[tit].forEach(([materia, n]) => {
         if (!materiasMarcadas[tit].has(materia)) return;
-        const delTema = datosPorTitulacion[tit].filter(q => q.materia === materia);
-        const pool = (MATERIAS_CON_TABLAS[tit] === materia && bloqueDeUnExamen(delTema, n, vistos))
-          || barajar(unicasPorGrupo(delTema, vistos));
-        const elegidas = pool.slice(0, n);
+        const delTema = datosDe(tit).filter(q => q.materia === materia);
+        const bloque = MATERIAS_CON_TABLAS[tit] === materia && bloqueDeUnExamen(delTema, n, vistos);
+        let elegidas;
+        if (bloque) {
+          // ejercicios de un mismo examen real: no se filtran por tema
+          elegidas = bloque.slice(0, n);
+          elegidas.forEach(q => (q.temas || []).forEach(t => temasUsados.add(t)));
+        } else {
+          elegidas = eligeDiversas(barajar(unicasPorGrupo(delTema, vistos)), n, temasUsados);
+        }
         elegidas.forEach(q => vistos.add(grupoDe(q)));
         resultado.push(...elegidas);
       });
@@ -528,11 +655,11 @@ function construyeCola(seleccion) {
   }
   let pool = [];
   seleccion.forEach(tit => {
-    pool = pool.concat(datosPorTitulacion[tit].filter(q => materiasMarcadas[tit].has(q.materia)));
+    pool = pool.concat(datosDe(tit).filter(q => materiasMarcadas[tit].has(q.materia)));
   });
   pool = barajar(unicasPorGrupo(pool));
-  const n = numeroPreguntasElegido === 0 ? pool.length : Math.min(numeroPreguntasElegido, pool.length);
-  return pool.slice(0, n);
+  if (numeroPreguntasElegido === 0) return pool;   // todas las disponibles
+  return eligeDiversas(pool, Math.min(numeroPreguntasElegido, pool.length), new Set());
 }
 
 // ---------- juego de palabras en inglés ----------
@@ -600,12 +727,39 @@ function construyeColaJuego() {
   return terminos.slice(0, n).map(t => preguntaDePalabra(t, Math.random() < 0.5));
 }
 
+// Elige n preguntas de la lista (ya barajada) sin que dos traten del mismo tema: `temas` son
+// numeros de «bigramas» que identifican un tema, y dos preguntas chocan si comparten alguno.
+// `usados` acumula los temas ya elegidos (en un examen, entre todas las materias). Si no quedan
+// suficientes sin chocar, se completa con las que menos chocan.
+function eligeDiversas(candidatas, n, usados) {
+  const elegidas = [];
+  const aplazadas = [];
+  for (const q of candidatas) {
+    if (elegidas.length >= n) break;
+    if ((q.temas || []).some(t => usados.has(t))) { aplazadas.push(q); continue; }
+    elegidas.push(q);
+    (q.temas || []).forEach(t => usados.add(t));
+  }
+  while (elegidas.length < n && aplazadas.length > 0) {
+    let mejor = 0;
+    let menos = Infinity;
+    aplazadas.forEach((q, i) => {
+      const choques = (q.temas || []).filter(t => usados.has(t)).length;
+      if (choques < menos) { menos = choques; mejor = i; }
+    });
+    const q = aplazadas.splice(mejor, 1)[0];
+    elegidas.push(q);
+    (q.temas || []).forEach(t => usados.add(t));
+  }
+  return elegidas;
+}
+
 // n preguntas del mismo examen (convocatoria + examen) entre los que tienen sus tablas
 // disponibles, para que el alumno use un unico juego de tablas, como en el examen real
 function bloqueDeUnExamen(preguntas, n, vistos) {
   const porExamen = new Map();
   preguntas.filter(q => q.requiere_anexo).forEach(q => {
-    const k = `${q.convocatoria}|${q.examen}`;
+    const k = `${q.procedencia || DGMM}|${q.convocatoria}|${q.examen}`;
     if (!porExamen.has(k)) porExamen.set(k, []);
     porExamen.get(k).push(q);
   });
@@ -921,7 +1075,7 @@ function guardaReporteActual() {
   } else {
     todos[q.id] = {
       id: q.id, clave: q.clave, titulacion: q.titulacion, materia: q.materia,
-      convocatoria: q.convocatoria, examen: q.examen, numero: q.numero,
+      convocatoria: q.convocatoria, examen: q.examen, numero: q.numero, procedencia: q.procedencia || DGMM,
       enunciado: q.enunciado, opciones: q.opciones, respuesta: q.respuesta,
       explicacion: explicacionDe(q),
       tipos, comentario, fecha: new Date().toISOString(),
@@ -940,7 +1094,7 @@ function generaInforme() {
     lineas.push(`=== ${i + 1}/${lista.length} ===`);
     lineas.push(`ID: ${r.id} | clave: ${r.clave || "-"}`);
     lineas.push(r.materia === MATERIA_JUEGO ? `${r.titulacion} · ${r.materia} (término #${r.numero} del vocabulario)`
-      : `${r.titulacion} · ${r.materia} · ${r.convocatoria} ${r.examen} #${r.numero}`);
+      : `${r.titulacion} · ${r.materia} · ${r.procedencia || DGMM} · ${r.convocatoria} ${r.examen} #${r.numero}`);
     lineas.push(`Error en: ${r.tipos.length ? r.tipos.join(", ") : "(sin indicar)"}`);
     lineas.push(`Comentario: ${r.comentario || "(sin comentario)"}`);
     lineas.push("--- Tal como se mostraba ---");

@@ -1,0 +1,202 @@
+{
+ "PNB": [
+  {
+   "slug": "dgmm-nacional",
+   "nombre": "DGMM (Nacional)",
+   "preguntas": 1170,
+   "grupos": 627
+  },
+  {
+   "slug": "andalucia",
+   "nombre": "Andalucía",
+   "preguntas": 772,
+   "grupos": 464
+  },
+  {
+   "slug": "asturias",
+   "nombre": "Asturias",
+   "preguntas": 389,
+   "grupos": 324
+  },
+  {
+   "slug": "region-de-murcia",
+   "nombre": "Región de Murcia",
+   "preguntas": 385,
+   "grupos": 320
+  },
+  {
+   "slug": "cataluna",
+   "nombre": "Cataluña",
+   "preguntas": 354,
+   "grupos": 226
+  },
+  {
+   "slug": "canarias",
+   "nombre": "Canarias",
+   "preguntas": 204,
+   "grupos": 171
+  },
+  {
+   "slug": "pais-vasco",
+   "nombre": "País Vasco",
+   "preguntas": 95,
+   "grupos": 48
+  },
+  {
+   "slug": "comunitat-valenciana",
+   "nombre": "Comunitat Valenciana",
+   "preguntas": 50,
+   "grupos": 50
+  }
+ ],
+ "PER": [
+  {
+   "slug": "dgmm-nacional",
+   "nombre": "DGMM (Nacional)",
+   "preguntas": 5851,
+   "grupos": 2581
+  },
+  {
+   "slug": "andalucia",
+   "nombre": "Andalucía",
+   "preguntas": 1746,
+   "grupos": 872
+  },
+  {
+   "slug": "region-de-murcia",
+   "nombre": "Región de Murcia",
+   "preguntas": 1008,
+   "grupos": 797
+  },
+  {
+   "slug": "cataluna",
+   "nombre": "Cataluña",
+   "preguntas": 987,
+   "grupos": 533
+  },
+  {
+   "slug": "asturias",
+   "nombre": "Asturias",
+   "preguntas": 634,
+   "grupos": 473
+  },
+  {
+   "slug": "canarias",
+   "nombre": "Canarias",
+   "preguntas": 295,
+   "grupos": 253
+  },
+  {
+   "slug": "comunitat-valenciana",
+   "nombre": "Comunitat Valenciana",
+   "preguntas": 282,
+   "grupos": 150
+  },
+  {
+   "slug": "pais-vasco",
+   "nombre": "País Vasco",
+   "preguntas": 75,
+   "grupos": 44
+  }
+ ],
+ "PY": [
+  {
+   "slug": "dgmm-nacional",
+   "nombre": "DGMM (Nacional)",
+   "preguntas": 1291,
+   "grupos": 724
+  },
+  {
+   "slug": "region-de-murcia",
+   "nombre": "Región de Murcia",
+   "preguntas": 352,
+   "grupos": 281
+  },
+  {
+   "slug": "andalucia",
+   "nombre": "Andalucía",
+   "preguntas": 256,
+   "grupos": 250
+  },
+  {
+   "slug": "asturias",
+   "nombre": "Asturias",
+   "preguntas": 228,
+   "grupos": 204
+  },
+  {
+   "slug": "canarias",
+   "nombre": "Canarias",
+   "preguntas": 59,
+   "grupos": 59
+  },
+  {
+   "slug": "cataluna",
+   "nombre": "Cataluña",
+   "preguntas": 52,
+   "grupos": 43
+  },
+  {
+   "slug": "comunitat-valenciana",
+   "nombre": "Comunitat Valenciana",
+   "preguntas": 49,
+   "grupos": 49
+  },
+  {
+   "slug": "pais-vasco",
+   "nombre": "País Vasco",
+   "preguntas": 38,
+   "grupos": 19
+  }
+ ],
+ "CY": [
+  {
+   "slug": "dgmm-nacional",
+   "nombre": "DGMM (Nacional)",
+   "preguntas": 1344,
+   "grupos": 755
+  },
+  {
+   "slug": "region-de-murcia",
+   "nombre": "Región de Murcia",
+   "preguntas": 354,
+   "grupos": 300
+  },
+  {
+   "slug": "andalucia",
+   "nombre": "Andalucía",
+   "preguntas": 257,
+   "grupos": 250
+  },
+  {
+   "slug": "asturias",
+   "nombre": "Asturias",
+   "preguntas": 230,
+   "grupos": 192
+  },
+  {
+   "slug": "cataluna",
+   "nombre": "Cataluña",
+   "preguntas": 61,
+   "grupos": 54
+  },
+  {
+   "slug": "comunitat-valenciana",
+   "nombre": "Comunitat Valenciana",
+   "preguntas": 38,
+   "grupos": 36
+  },
+  {
+   "slug": "pais-vasco",
+   "nombre": "País Vasco",
+   "preguntas": 38,
+   "grupos": 19
+  },
+  {
+   "slug": "canarias",
+   "nombre": "Canarias",
+   "preguntas": 19,
+   "grupos": 19
+  }
+ ]
+}
