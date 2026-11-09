@@ -190,13 +190,13 @@
    "slug": "dgmm-nacional",
    "nombre": "DGMM (Nacional)",
    "preguntas": 1344,
-   "grupos": 757
+   "grupos": 755
   },
   {
    "slug": "illes-balears",
    "nombre": "Illes Balears",
    "preguntas": 2021,
-   "grupos": 1017
+   "grupos": 755
   },
   {
    "slug": "region-de-murcia",

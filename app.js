@@ -681,7 +681,8 @@ function elegirDistractores(t, haciaCastellano) {
   const lon = texto(t).length;
   const candidatos = vocabulario
     .filter(o => o !== t && !significados(o.es).some(s => propios.includes(s)))
-    .map(o => ({ o, puntos: Math.abs(texto(o).length - lon) + Math.random() * 8 }))
+    .map(o => ({ o, puntos: Math.abs(texto(o).length - lon) + Math.random() * 8 +
+      ((o.tipo === "frase") !== (t.tipo === "frase") ? 200 : 0) }))   // frases con frases, términos con términos
     .sort((a, b) => a.puntos - b.puntos);
   const usados = new Set([texto(t)]);
   const elegidos = [];
