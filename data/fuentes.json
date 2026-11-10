@@ -49,16 +49,16 @@
    "grupos": 48
   },
   {
+   "slug": "galicia",
+   "nombre": "Galicia",
+   "preguntas": 82,
+   "grupos": 77
+  },
+  {
    "slug": "comunitat-valenciana",
    "nombre": "Comunitat Valenciana",
    "preguntas": 50,
    "grupos": 50
-  },
-  {
-   "slug": "galicia",
-   "nombre": "Galicia",
-   "preguntas": 46,
-   "grupos": 46
   }
  ],
  "PER": [
@@ -111,16 +111,16 @@
    "grupos": 149
   },
   {
+   "slug": "galicia",
+   "nombre": "Galicia",
+   "preguntas": 109,
+   "grupos": 106
+  },
+  {
    "slug": "pais-vasco",
    "nombre": "País Vasco",
    "preguntas": 75,
    "grupos": 44
-  },
-  {
-   "slug": "galicia",
-   "nombre": "Galicia",
-   "preguntas": 69,
-   "grupos": 69
   }
  ],
  "PY": [
@@ -157,8 +157,8 @@
   {
    "slug": "galicia",
    "nombre": "Galicia",
-   "preguntas": 106,
-   "grupos": 90
+   "preguntas": 143,
+   "grupos": 120
   },
   {
    "slug": "canarias",
@@ -219,8 +219,8 @@
   {
    "slug": "galicia",
    "nombre": "Galicia",
-   "preguntas": 111,
-   "grupos": 82
+   "preguntas": 95,
+   "grupos": 70
   },
   {
    "slug": "cataluna",
