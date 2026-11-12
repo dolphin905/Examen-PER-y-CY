@@ -4,13 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test titulaciones náuticas de recreo</title>
-<link rel="stylesheet" href="style.css?v=20261110194530">
+<link rel="stylesheet" href="style.css?v=20261112175326">
 </head>
 <body>
 
 <div id="pantalla-inicio" class="pantalla">
   <h1>Test titulaciones náuticas de recreo</h1>
   <p class="subtitulo">Banco de preguntas extraído de los exámenes oficiales (2016-2026)</p>
+
+  <a id="acceso-simulador" class="acceso-simulador" href="../simulador/index.html">
+    <span class="acceso-titulo">🧭 Simulador de navegación · Capitán de Yate</span>
+    <span class="acceso-desc">Esfera celeste, derrotas y horas, rectas de altura, sextante y aguja. Mete los datos de un ejercicio y míralo dibujado, con el cálculo paso a paso.</span>
+  </a>
 
   <div class="bloque">
     <h2>1. Titulación</h2>
@@ -69,6 +74,7 @@
     <p id="texto-enunciado" class="enunciado"></p>
 
     <p id="aviso-carta" class="aviso-carta oculta">📐 Este ejercicio se resuelve sobre la <strong>carta náutica en papel</strong>, que aquí no se puede mostrar: ténla delante, como en el examen. Las tablas del examen sí las tienes abajo.</p>
+    <p id="enlace-simulador" class="enlace-simulador oculta"><a href="#" target="_blank" rel="noopener">🧭 Abrir el simulador para este ejercicio</a></p>
     <details id="det-anexos" class="det-anexos oculta">
       <summary id="resumen-anexos"></summary>
       <div id="galeria-anexos" class="galeria-anexos"></div>
@@ -136,7 +142,7 @@
   <img id="visor-imagen-img" src="" alt="Tabla ampliada">
 </div>
 
-<script>window.RUTA_DATOS = "data/";</script>
-<script src="app.js?v=20261110194530"></script>
+<script>window.RUTA_DATOS = "data/"; window.RUTA_SIMULADOR = "simulador/index.html";</script>
+<script src="app.js?v=20261112175326"></script>
 </body>
 </html>

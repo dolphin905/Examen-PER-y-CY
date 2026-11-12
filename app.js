@@ -2,6 +2,7 @@
 
 const TITULACIONES = ["PNB", "PER", "PY", "CY"];
 const RUTA_DATOS = window.RUTA_DATOS || "../salida/";
+const RUTA_SIMULADOR = window.RUTA_SIMULADOR || "../simulador/index.html";
 
 // Materias de cada titulacion (en el orden del examen) y nº de preguntas de cada una
 // en el examen oficial. El tercer valor (opcional) es el minimo de aciertos de esa materia.
@@ -570,6 +571,7 @@ function initPantallaInicio() {
   });
 
   initReportes();
+  document.getElementById("acceso-simulador").href = RUTA_SIMULADOR;
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
   document.getElementById("btn-anterior").addEventListener("click", anteriorPregunta);
@@ -799,6 +801,31 @@ function mostrarPantalla(nombre) {
   window.scrollTo(0, 0);
 }
 
+// Simulador de navegación (solo CY, teoría y cálculo de navegación): devuelve el enlace con la pestaña y el
+// ejercicio que mejor encajan con el enunciado, o "" si la pregunta no es de esas materias
+const MATERIAS_SIMULADOR = new Set(["Teoría de navegación", "Cálculo de navegación"]);
+function enlaceSimulador(q) {
+  if (q.titulacion !== "CY" || !MATERIAS_SIMULADOR.has(q.materia)) return "";
+  const t = (q.enunciado || "").toLowerCase();
+  const hay = re => re.test(t);
+  let destino;
+  if (hay(/declinaci[oó]n magn|\bdm\b|desv[ií]o|variaci[oó]n anua|decremento anuo/)) destino = "aguja";
+  else if (hay(/determinante|punto aproximado|dos rectas|situaci[oó]n observada/)) destino = "rectas";
+  else if (hay(/ortodr|c[ií]rculo m[aá]ximo|ganancia/)) destino = "globo/orto";
+  else if (hay(/hora (legal|civil|oficial)|\bhcl\b|huso|diferencia horaria/)
+           && !hay(/\bsol\b|estrella|polar|altura|horario|meridian/)) destino = "globo/horas";
+  else if (hay(/loxodr|rumbo directo|distancia directa|situaci[oó]n de llegada/)) destino = "globo/estima";
+  else if (hay(/\bpolar\b/)) destino = "esfera/polar";
+  else if (hay(/crep[uú]scul/) && q.materia === "Teoría de navegación") destino = "esfera/crep";
+  else if (hay(/\borto\b|\bocaso\b|amplitud/)) destino = "esfera/orto";
+  else if (hay(/meridian|culmina/)) destino = "esfera/meridiana";
+  else if (hay(/recta de altura|diferencia de alturas|incremento de alturas|altura estimada/)) destino = "esfera/recta";
+  else if (hay(/altura verdadera|altura instrumental|error de [ií]ndice|correcci[oó]n de [ií]ndice|sextante/)) destino = "sextante";
+  else if (hay(/horario/)) destino = "esfera/horario";
+  else destino = q.materia === "Teoría de navegación" ? "esfera/libre" : "esfera/coord";
+  return `${RUTA_SIMULADOR}#${destino}`;
+}
+
 function renderPregunta() {
   const q = cola[indiceActual];
   const elegida = respuestasDadas[indiceActual];
@@ -833,6 +860,9 @@ function renderPregunta() {
     detalle.classList.add("oculta");
   }
   document.getElementById("aviso-carta").classList.toggle("oculta", !q.carta_papel);
+  const enlSim = document.getElementById("enlace-simulador"), urlSim = enlaceSimulador(q);
+  enlSim.classList.toggle("oculta", !urlSim);
+  if (urlSim) enlSim.querySelector("a").href = urlSim;
 
   const lista = document.getElementById("lista-opciones");
   lista.innerHTML = "";

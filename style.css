@@ -575,3 +575,21 @@ h1 {
 /* ---- fuente de los examenes ---- */
 
 .grupo-fuentes { margin-bottom: 14px; }
+
+/* ---- simulador de navegación (CY) ---- */
+
+.acceso-simulador {
+  display: block;
+  margin: -12px 0 28px;
+  padding: 12px 14px;
+  border: 1px solid var(--gris-borde);
+  border-radius: var(--radio);
+  background: var(--azul-claro);
+  text-decoration: none;
+  color: inherit;
+}
+.acceso-simulador:hover { border-color: var(--azul); }
+.acceso-titulo { display: block; font-weight: 600; color: var(--azul-marino); }
+.acceso-desc { display: block; font-size: .88rem; color: #5c6b73; margin-top: 2px; }
+.enlace-simulador { margin: 12px 0 0; font-size: .92rem; }
+.enlace-simulador a { color: var(--azul); font-weight: 600; }

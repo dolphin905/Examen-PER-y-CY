@@ -1,0 +1,1084 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{box-sizing:border-box}body{margin:0;padding:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Simulador Navegación CY</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a planetarium/chart-table stage on the left and an instrument panel on the right; four work tables (tabs).
+   Single night look by choice: the subject is the night sky. Colour encodes the coordinate system. */
+:root{
+  color-scheme:dark;
+  --bg:#060b17; --stage:#0a1326; --panel:#0d172c; --line:#1f2c49; --field:#111d38;
+  --ink:#e4ebf8; --mute:#8494b6;
+  --hor:#48d6c2;   /* sistema horizontal: altura, azimut · loxodrómica */
+  --eq:#f3b94a;    /* sistema ecuatorial: declinación, horario · ortodrómica */
+  --mer:#9fabff;   /* meridiano y latitud */
+  --tri:#ff7d95;   /* triángulo de posición · resultado */
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45}
+.app{box-sizing:border-box;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;
+  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+h1{font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-.01em;margin:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border-radius:999px;padding:7px 14px}
+.tabs button[aria-selected="true"]{background:var(--eq);color:#1a1404;border-color:var(--eq);font-weight:600}
+.tab{display:grid;grid-template-columns:minmax(0,1fr) 372px;gap:14px;min-height:0;height:100%}
+.view{position:relative;min-width:0;min-height:420px;border-radius:14px;overflow:hidden;border:1px solid var(--line);
+  background:radial-gradient(120% 90% at 50% 40%,#111d3a 0%,var(--stage) 55%,#070d1b 100%)}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.view.flat canvas{touch-action:auto}
+.labels{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.labels span{position:absolute;left:0;top:0;font:600 12px var(--font-body);white-space:nowrap;text-shadow:0 0 4px #060b17,0 0 4px #060b17,0 0 2px #060b17}
+.labels span.big{font-size:13.5px}
+.hint{position:absolute;left:12px;right:12px;bottom:10px;font-size:12px;color:var(--mute);pointer-events:none;text-align:right}
+.hint.live{color:#e4ebf8;font-family:"IBM Plex Mono",monospace;font-weight:500;text-shadow:0 0 4px #060b17,0 0 4px #060b17}
+.labels i.hd{position:absolute;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;box-sizing:border-box;border:2px dashed rgba(240,245,255,.85);border-radius:50%}
+.labels i.hd.on{border-style:solid;border-color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.16)}
+.badge{position:absolute;left:14px;top:12px;max-width:min(330px,70%);pointer-events:none}
+.badge b{display:block;font-family:var(--font-display);font-size:19px;line-height:1.15;text-wrap:balance}
+.badge span{color:#c3cde2;font-size:13px}
+.panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.panel h3{font-family:var(--font-data);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:0 0 8px}
+.grid{display:grid;gap:8px}
+.f{display:grid;grid-template-columns:104px minmax(0,1fr);gap:8px;align-items:center;font-size:13px}
+.f>label,.f>span.l{color:#c3cde2}
+.ang{display:flex;align-items:center;gap:4px;min-width:0}
+.ang input{width:48px}
+.ang input.m{width:58px}
+.ang select{min-width:54px;padding-right:2px}
+.ang i{font-style:normal;color:var(--mute)}
+input,select{font:500 13px var(--font-data);color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 7px;min-width:0;box-sizing:border-box}
+select{font-family:var(--font-body);max-width:100%}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number]::-webkit-outer-spin-button,input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+input[type=checkbox]{accent-color:var(--eq);width:15px;height:15px;margin:0}
+button{font:500 13px var(--font-body);color:var(--ink);background:#15213d;border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+button:hover{background:#1b2a4d}
+button.go{background:var(--eq);color:#1a1404;border-color:var(--eq);font-weight:600}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.note{color:var(--mute);font-size:12px;margin:0}
+.rows{display:grid;gap:6px;margin:0}
+.rows div{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:baseline}
+.rows dt{font-size:13px;color:#c3cde2}
+.rows dd{margin:0;font-family:var(--font-data);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.dot{width:8px;height:8px;border-radius:50%;align-self:center}
+.calc{font-family:var(--font-data);font-size:12px;font-variant-numeric:tabular-nums;display:grid;gap:4px;min-width:0}
+.calc p{margin:0;overflow-wrap:anywhere}
+.calc .fm{color:var(--mute)}
+.calc .r{color:var(--hor);font-size:14px;font-weight:500;margin-bottom:6px}
+.calc .w{color:var(--tri)}
+details summary{cursor:pointer;font-family:var(--font-data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.lay{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-top:10px;font-size:12.5px}
+.lay label{display:flex;gap:6px;align-items:center;min-width:0}
+table.det{width:100%;border-collapse:collapse;font-size:12.5px}
+table.det th{font:500 11px var(--font-data);color:var(--mute);text-align:left;padding:0 4px 4px 0;letter-spacing:.06em}
+table.det td{padding:0 4px 6px 0}
+table.det input{width:100%}
+table.det td.nr{width:34px;font:600 13px var(--font-data);color:var(--mute);text-align:center;padding-right:8px}
+@media (max-width:860px){
+  .app{height:auto}
+  .tab{grid-template-columns:minmax(0,1fr);height:auto}
+  .view{min-height:0;aspect-ratio:1/1;max-width:100%}
+  .badge span{display:none}
+  .badge b{font-size:13px} #x-view,#c-view{aspect-ratio:4/5}
+  .panel{overflow:visible}
+}
+@media (max-width:480px){
+  .f{grid-template-columns:minmax(0,1fr);gap:3px}
+}
+.cap{position:absolute;left:12px;right:12px;top:10px;font-size:12px;color:#c3cde2;pointer-events:none;display:grid;gap:2px}
+.cap b{font-weight:600}
+</style>
+
+<div class="app">
+  <header>
+    <a href="../index.html" style="color:#c3cde2;font-size:13px;text-decoration:none;border:1px solid rgba(255,255,255,.2);border-radius:999px;padding:6px 12px;white-space:nowrap">← Volver al test</a><h1>Simulador de navegación · CY</h1>
+    <nav class="tabs" role="tablist" aria-label="Mesas de trabajo">
+      <button role="tab" data-tab="esfera" aria-selected="true">Esfera celeste</button>
+      <button role="tab" data-tab="globo" aria-selected="false">Derrotas y horas</button>
+      <button role="tab" data-tab="rectas" aria-selected="false">Rectas de altura</button>
+      <button role="tab" data-tab="sextante" aria-selected="false">Sextante</button>
+      <button role="tab" data-tab="aguja" aria-selected="false">Aguja · Ct</button>
+    </nav>
+  </header>
+
+  <!-- ============ ESFERA CELESTE ============ -->
+  <section class="tab" id="tab-esfera">
+    <div class="view" id="e-view">
+      <div class="badge"><b id="e-title"></b><span id="e-sub"></span></div>
+      <div class="hint" id="e-hint"></div>
+    </div>
+    <aside class="panel">
+      <section>
+        <h3>¿Qué ejercicio estás haciendo?</h3>
+        <select id="e-mode" style="width:100%">
+          <option value="coord">Altura y azimut de un astro</option>
+          <option value="horario">Horario del astro (hG y hL)</option>
+          <option value="orto">Orto y ocaso · corrección total</option>
+          <option value="crep">Crepúsculos · horas de orto y ocaso</option>
+          <option value="meridiana">Paso por el meridiano · latitud</option>
+          <option value="polar">Polar · latitud y corrección total</option>
+          <option value="recta">Recta de altura: calcular Z y Δa de un astro</option>
+          <option value="ir-rectas">Situación por rectas (ya tengo Zv y Δa) → abre «Rectas de altura»</option>
+          <option value="libre">Explorar la esfera (teoría)</option>
+        </select>
+      </section>
+      <section>
+        <h3>Observador</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Latitud</span><div class="ang" data-k="lat" data-h="NS"></div></div>
+          <div class="f"><span class="l">Longitud</span><div class="ang" data-k="lon" data-h="EW"></div></div>
+        </div>
+      </section>
+      <section>
+        <h3>Astro</h3>
+        <div class="grid">
+          <div class="f"><label for="e-astro">Astro</label><select id="e-astro"></select></div>
+          <div class="f" id="e-man1"><span class="l">Declinación</span><div class="ang" data-k="mdec" data-h="NS"></div></div>
+          <div class="f" id="e-man2"><span class="l">Horario</span>
+            <div class="row"><div class="ang" data-k="mhl"></div>
+              <select id="e-mhk" aria-label="Tipo de horario"><option value="L">en el lugar (hL)</option><option value="G">en Greenwich (hG)</option></select></div></div>
+        </div>
+      </section>
+      <section id="e-time">
+        <h3>Instante</h3>
+        <div class="grid">
+          <div class="f"><label for="e-tk">La hora es</label><select id="e-tk">
+            <option value="ut">UT · hora civil en Greenwich (HcG)</option>
+            <option value="legal">Hora legal (Hz), la del huso</option>
+            <option value="civil">Hora civil del lugar (HcL)</option>
+            <option value="oficial">Hora oficial o de reloj de bitácora</option></select></div>
+          <div class="f" id="e-tof-box" hidden><label for="e-tof">Adelanto sobre UT</label>
+            <div class="row"><input id="e-tof" type="text" inputmode="decimal" style="width:56px"><select id="e-tofref" aria-label="El adelanto se cuenta sobre"><option value="ut">h sobre UT</option><option value="huso">h sobre la hora legal</option></select></div></div>
+          <div class="f"><label for="e-date">Fecha</label><input id="e-date" type="date"></div>
+          <div class="f"><label for="e-hora" id="e-hora-l">Hora UT</label><input id="e-hora" type="time" step="1"></div>
+          <p class="note" id="e-tnote" hidden></p>
+          <div class="f"><span class="l">Movimiento</span>
+            <div class="row"><button id="e-play" type="button">▶ Girar el cielo</button>
+              <select id="e-speed" aria-label="Velocidad"><option value="1">1 h por segundo</option><option value="0.1667">10 min por segundo</option><option value="4">4 h por segundo</option></select></div></div>
+        </div>
+      </section>
+      <section id="e-extra-box"><h3 id="e-extra-h">Datos del ejercicio</h3><div class="grid" id="e-extra"></div></section>
+      <section>
+        <h3>Resultados</h3>
+        <dl class="rows" id="e-res"></dl>
+      </section>
+      <section>
+        <h3>Cálculo paso a paso</h3>
+        <div class="calc" id="e-calc"></div>
+      </section>
+      <details id="e-lays">
+        <summary>Qué se dibuja</summary>
+        <div class="lay" id="e-lay"></div>
+      </details>
+      <p class="note">El Sol y las estrellas se calculan con fórmulas aproximadas (error habitual menor de 1′). En el examen usa siempre los valores del Almanaque Náutico; si no coinciden, elige «Datos a mano» y escribe la declinación y el horario del Almanaque.</p>
+    </aside>
+  </section>
+
+  <!-- ============ GLOBO ============ -->
+  <section class="tab" id="tab-globo" hidden>
+    <div class="view" id="g-view">
+      <div class="badge"><b>Derrotas y horas</b><span>Naranja: ortodrómica (círculo máximo). Verde: loxodrómica (rumbo constante).</span></div>
+      <div class="hint" id="g-hint"></div>
+    </div>
+    <aside class="panel">
+      <section>
+        <h3>¿Qué ejercicio estás haciendo?</h3>
+        <select id="g-mode" style="width:100%">
+          <option value="orto">Ortodrómica: rumbo inicial y distancia</option>
+          <option value="estima">Estima: rumbo y distancia → situación de llegada</option>
+          <option value="horas">Horas: civil, legal, oficial y UT entre dos lugares</option>
+        </select>
+      </section>
+      <section>
+        <h3>Punto A (salida)</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Latitud</span><div class="ang" data-k="ga_lat" data-h="NS"></div></div>
+          <div class="f"><span class="l">Longitud</span><div class="ang" data-k="ga_lon" data-h="EW"></div></div>
+        </div>
+      </section>
+      <section id="g-bbox">
+        <h3>Punto B (llegada)</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Latitud</span><div class="ang" data-k="gb_lat" data-h="NS"></div></div>
+          <div class="f"><span class="l">Longitud</span><div class="ang" data-k="gb_lon" data-h="EW"></div></div>
+        </div>
+      </section>
+      <section id="g-ebox">
+        <h3>Rumbo y distancia</h3>
+        <div class="grid">
+          <div class="f"><label for="g-rv">Rumbo verdadero</label><div class="row"><input id="g-rv" type="number" min="0" max="360" step="0.1" style="width:80px"><i>°</i></div></div>
+          <div class="f"><label for="g-dist">Distancia</label><div class="row"><input id="g-dist" type="number" min="0" step="0.1" style="width:80px"><i>millas</i></div></div>
+        </div>
+      </section>
+      <section id="g-hbox">
+        <h3>Hora conocida en A</h3>
+        <div class="grid">
+          <div class="f"><label for="g-date">Fecha</label><input id="g-date" type="date"></div>
+          <div class="f"><label for="g-hora">Hora</label><input id="g-hora" type="time" step="1"></div>
+          <div class="f"><label for="g-kind">Es hora…</label><select id="g-kind"><option value="civil">civil del lugar (HcL)</option><option value="legal">legal (del huso)</option><option value="oficial">oficial (con el adelanto de A)</option><option value="ut">UT (HcG)</option></select></div>
+          <div class="f"><span class="l">Adelanto oficial</span><div class="row">
+            <input id="g-ofa" type="text" inputmode="decimal" placeholder="en A" aria-label="Adelanto oficial en A, en horas" style="width:56px">
+            <input id="g-ofb" type="text" inputmode="decimal" placeholder="en B" aria-label="Adelanto oficial en B, en horas" style="width:56px">
+            <select id="g-ofref" aria-label="El adelanto se cuenta sobre"><option value="ut">h sobre UT</option><option value="huso">h sobre la hora legal</option></select></div></div>
+        </div>
+        <p class="note">La hora oficial la fija cada país. España peninsular y Baleares: 1 h sobre UT en invierno y 2 h en verano (del último domingo de marzo al último de octubre); Canarias: 0 y 1 h. Deja el adelanto vacío si el ejercicio no usa hora oficial.</p>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="g-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="g-calc"></div></section>
+    </aside>
+  </section>
+
+  <!-- ============ RECTAS DE ALTURA ============ -->
+  <section class="tab" id="tab-rectas" hidden>
+    <div class="view flat" id="r-view"><canvas id="r-cv" aria-label="Carta en blanco con las rectas de altura y la situación observada"></canvas></div>
+    <aside class="panel">
+      <section>
+        <h3>Situación de estima</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Latitud</span><div class="ang" data-k="r_lat" data-h="NS"></div></div>
+          <div class="f"><span class="l">Longitud</span><div class="ang" data-k="r_lon" data-h="EW"></div></div>
+        </div>
+      </section>
+      <section>
+        <h3>Determinantes</h3>
+        <table class="det">
+          <thead><tr><th>Recta</th><th>Nombre</th><th>Hz (opcional)</th><th>Zv °</th><th>Δa ′</th></tr></thead>
+          <tbody id="r-dets"></tbody>
+        </table>
+        <div class="row" style="margin:2px 0 8px"><button id="r-clear" type="button">Vaciar la tabla</button></div>
+        <p class="note">Una fila por cada recta: escribe su azimut verdadero (Zv) y su diferencia de alturas (Δa). El nombre es solo una etiqueta para el dibujo; no hace falta elegir ningún astro. Δa positivo: hacia el astro. Negativo: en sentido contrario. Deja vacía la fila que no uses.</p>
+      </section>
+      <section>
+        <h3>Traslado (observaciones no simultáneas)</h3>
+        <div class="grid">
+          <div class="f"><label for="r-rv">Rumbo verdadero</label><div class="row"><input id="r-rv" type="number" min="0" max="360" step="0.1" style="width:80px"><i>°</i></div></div>
+          <div class="f"><label for="r-vb">Velocidad</label><div class="row"><input id="r-vb" type="number" min="0" step="0.1" style="width:80px"><i>nudos</i></div></div>
+        </div>
+        <p class="note">Si escribes las horas, cada recta se traslada por rumbo y distancia hasta la hora de la última observación.</p>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="r-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="r-calc"></div></section>
+    </aside>
+  </section>
+
+  <!-- ============ SEXTANTE ============ -->
+  <section class="tab" id="tab-sextante" hidden>
+    <div class="view flat" id="x-view"><canvas id="x-cv" aria-label="Esquema de las correcciones a la altura del sextante"></canvas>
+      <div class="cap"><span><b style="color:var(--eq)">ai</b> altura instrumental, desde el horizonte de la mar · <b style="color:var(--hor)">Dp</b> depresión · <b style="color:var(--tri)">av</b> altura verdadera, desde la horizontal del ojo (a trazos)</span><span id="x-cap"></span><span style="color:var(--mute)">Esquema: los ángulos pequeños están exagerados.</span></div></div>
+    <aside class="panel">
+      <section>
+        <h3>Altura instrumental → altura verdadera</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Altura instrumental</span><div class="ang" data-k="x_ai"></div></div>
+          <div class="f"><label for="x-ci">Corrección de índice</label><div class="row"><input id="x-ci" type="number" step="0.1" style="width:80px"><i>′ (con su signo)</i></div></div>
+          <div class="f"><label for="x-e">Elevación del ojo</label><div class="row"><input id="x-e" type="number" min="0" step="0.1" style="width:80px"><i>metros</i></div></div>
+          <div class="f"><label for="x-astro">Astro</label><select id="x-astro"><option value="li">Sol, limbo inferior</option><option value="ls">Sol, limbo superior</option><option value="st">Estrella o planeta</option></select></div>
+          <div class="f"><label for="x-date">Fecha</label><input id="x-date" type="date"></div>
+        </div>
+        <p class="note">Error de índice a la derecha del cero: corrección negativa. A la izquierda: positiva.</p>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="x-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="x-calc"></div></section>
+      <section>
+        <h3>Error de índice por el Sol (sextante de tambor)</h3>
+        <div class="grid">
+          <div class="f"><label for="x-der">Lectura a la derecha</label><div class="row"><input id="x-der" type="number" step="0.1" style="width:80px"><i>′</i></div></div>
+          <div class="f"><label for="x-izq">Lectura a la izquierda</label><div class="row"><input id="x-izq" type="number" step="0.1" style="width:80px"><i>′ del tambor</i></div></div>
+        </div>
+        <div class="calc" id="x-ei" style="margin-top:10px"></div>
+      </section>
+      <p class="note">Depresión, refracción y semidiámetro se calculan con fórmulas; las tablas del Almanaque pueden diferir en una o dos décimas de minuto.</p>
+    </aside>
+  </section>
+
+  <!-- ============ AGUJA: corrección total ============ -->
+  <section class="tab" id="tab-aguja" hidden>
+    <div class="view flat" id="c-view"><canvas id="c-cv" aria-label="Rosa con el norte verdadero, el magnético y el de aguja"></canvas>
+      <div class="cap"><span><b style="color:#e4ebf8">Nv</b> norte verdadero · <b style="color:#9fabff">Nm</b> norte magnético · <b style="color:#f3b94a">Na</b> norte de aguja</span><span id="c-cap"></span></div></div>
+    <aside class="panel">
+      <section>
+        <h3>Declinación magnética de la carta</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Declinación (dm)</span><div class="ang" data-k="c_dm" data-h="EW"></div></div>
+          <div class="f"><label for="c-y0">Año de la carta</label><input id="c-y0" type="number" step="1" style="width:90px"></div>
+          <div class="f"><label for="c-va">Variación anual</label><div class="row"><input id="c-va" type="number" min="0" step="0.1" style="width:60px"><i>′</i>
+            <select id="c-vk" aria-label="Sentido de la variación anual"><option value="E">hacia el E</option><option value="W">hacia el W</option><option value="mas">aumenta (+)</option><option value="menos">disminuye (−)</option></select></div></div>
+          <div class="f"><label for="c-y1">Año actual</label><input id="c-y1" type="number" step="1" style="width:90px"></div>
+        </div>
+        <p class="note">En la carta, «3° 20′ W 2016 (7′ E)» quiere decir que la declinación se desplaza 7′ hacia el Este cada año. «Incremento anuo» o signo +: el valor aumenta; «decremento anuo» o signo −: disminuye. Si no hay que actualizarla, pon 0 en la variación.</p>
+      </section>
+      <section>
+        <h3>Desvío y rumbo</h3>
+        <div class="grid">
+          <div class="f"><label for="c-des">Desvío (Δ)</label><div class="row"><input id="c-des" type="text" inputmode="decimal" style="width:80px"><i>° (+ NE, − NW)</i></div></div>
+          <div class="f"><label for="c-ra">Rumbo de aguja</label><div class="row"><input id="c-ra" type="text" inputmode="decimal" style="width:80px"><i>° (opcional)</i></div></div>
+          <div class="f"><label for="c-da">Demora de aguja</label><div class="row"><input id="c-da" type="text" inputmode="decimal" style="width:80px"><i>° (opcional)</i></div></div>
+        </div>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="c-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="c-calc"></div></section>
+      <p class="note">Para hallar la Ct con un astro (la Polar, o el Sol en el orto o el ocaso) usa «Esfera celeste».</p>
+    </aside>
+  </section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(()=>{
+'use strict';
+const D=Math.PI/180;
+const sin=x=>Math.sin(x*D),cos=x=>Math.cos(x*D),tan=x=>Math.tan(x*D);
+const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const asin=x=>Math.asin(cl(x,-1,1))/D,acos=x=>Math.acos(cl(x,-1,1))/D,atan2=(y,x)=>Math.atan2(y,x)/D;
+const mod=(x,m)=>((x%m)+m)%m;
+const $=id=>document.getElementById(id);
+const C={hor:0x48d6c2,eq:0xf3b94a,mer:0x9fabff,tri:0xff7d95,ink:0xe4ebf8,mute:0x8494b6,star:0xfff4cf};
+const CS={hor:'#48d6c2',eq:'#f3b94a',mer:'#9fabff',tri:'#ff7d95',ink:'#e4ebf8',mute:'#8494b6',star:'#fff4cf'};
+
+/* ---------- formato ---------- */
+const p2=n=>String(n).padStart(2,'0');
+const f1=x=>x.toFixed(1).replace('.',',').replace('-','−');
+const f4=x=>{const s=x.toFixed(4).replace('.',',').replace('-','−');return x<0?'('+s+')':s};
+function dm(v){let a=Math.abs(v),d=Math.floor(a+1e-9),m=Math.round((a-d)*600)/10;if(m>=60){d++;m=0}
+  return d+'° '+(m<10?'0':'')+m.toFixed(1).replace('.',',')+'′';}
+const sdm=v=>(v<0?'−':'')+dm(v);
+const latS=v=>dm(v)+' '+(v<0?'S':'N'), lonS=v=>dm(v)+' '+(v<0?'W':'E'), decS=latS;
+function hms(h){let s=Math.round(mod(h,24)*3600)%86400;return p2(Math.floor(s/3600))+'h '+p2(Math.floor(s%3600/60))+'m '+p2(s%60)+'s';}
+function dur(h){const neg=h<0;let s=Math.round(Math.abs(h)*3600);return (neg?'−':'')+Math.floor(s/3600)+'h '+p2(Math.floor(s%3600/60))+'m '+p2(s%60)+'s';}
+const MES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+const fecha=ms=>{const d=new Date(ms);return d.getUTCDate()+' '+MES[d.getUTCMonth()]+' '+d.getUTCFullYear()};
+const cuadr=z=>{z=mod(z,360);return z<=90?'N '+f1(z)+'° E':z<=180?'S '+f1(180-z)+'° E':z<=270?'S '+f1(z-180)+'° W':'N '+f1(360-z)+'° W'};
+const rows=(el,list)=>{el.innerHTML=list.map(r=>'<div><span class="dot" style="background:'+(r[2]||'transparent')+'"></span><dt>'+r[0]+'</dt><dd>'+r[1]+'</dd></div>').join('')};
+
+/* ---------- efemérides aproximadas ---------- */
+const STARS=[ // nombre, AR h, AR min, signo, dec °, dec ′ (J2000)
+['Polar',3,3.0,1,89,22.2,1],
+['Alpheratz',0,8.4,1,29,5],['Caph',0,9.2,1,59,9],['Ankaa',0,26.3,-1,42,18],['Schedar',0,40.5,1,56,32],['Diphda',0,43.6,-1,17,59],
+['Cih (γ Cas)',0,56.7,1,60,43],['Ruchbah',1,25.8,1,60,14],['Achernar',1,37.7,-1,57,14],['Segin',1,54.4,1,63,40],['Hamal',2,7.2,1,23,28],
+['Acamar',2,58.3,-1,40,18],['Menkar',3,2.3,1,4,5],['Mirfak',3,24.3,1,49,52],['Aldebaran',4,35.9,1,16,31],['Rigel',5,14.5,-1,8,12],
+['Capella',5,16.7,1,46,0],['Bellatrix',5,25.1,1,6,21],['Elnath',5,26.3,1,28,36],['Mintaka',5,32.0,-1,0,18],['Alnilam',5,36.2,-1,1,12],
+['Alnitak',5,40.8,-1,1,57],['Saiph',5,47.8,-1,9,40],['Betelgeuse',5,55.2,1,7,24],['Canopus',6,24.0,-1,52,42],['Sirius',6,45.1,-1,16,43],
+['Adhara',6,58.6,-1,28,58],['Castor',7,34.6,1,31,53],['Procyon',7,39.3,1,5,13],['Pollux',7,45.3,1,28,2],['Avior',8,22.5,-1,59,31],
+['Suhail',9,8.0,-1,43,26],['Miaplacidus',9,13.2,-1,69,43],['Alphard',9,27.6,-1,8,40],['Regulus',10,8.4,1,11,58],['Merak',11,1.8,1,56,23],
+['Dubhe',11,3.7,1,61,45],['Denebola',11,49.1,1,14,34],['Phecda',11,53.8,1,53,42],['δ Crucis',12,15.1,-1,58,45],['Megrez',12,15.4,1,57,2],
+['Gienah',12,15.8,-1,17,33],['Acrux',12,26.6,-1,63,6],['Gacrux',12,31.2,-1,57,7],['Mimosa',12,47.7,-1,59,41],['Alioth',12,54.0,1,55,58],
+['Mizar',13,23.9,1,54,56],['Spica',13,25.2,-1,11,10],['Alkaid',13,47.5,1,49,19],['Hadar',14,3.8,-1,60,22],['Menkent',14,6.7,-1,36,22],
+['Arcturus',14,15.7,1,19,11],['Rigil Kent',14,39.6,-1,60,50],['Kochab',14,50.7,1,74,9],['Zubenelgenubi',14,50.9,-1,16,3],['Pherkad',15,20.7,1,71,50],
+['Alphecca',15,34.7,1,26,43],['Antares',16,29.4,-1,26,26],['Atria',16,48.7,-1,69,2],['Sabik',17,10.4,-1,15,43],['Shaula',17,33.6,-1,37,6],
+['Rasalhague',17,34.9,1,12,34],['Eltanin',17,56.6,1,51,29],['Kaus Australis',18,24.2,-1,34,23],['Vega',18,36.9,1,38,47],['Nunki',18,55.3,-1,26,18],
+['Altair',19,50.8,1,8,52],['Peacock',20,25.6,-1,56,44],['Deneb',20,41.4,1,45,17],['Enif',21,44.2,1,9,53],['Alnair',22,8.2,-1,46,58],
+['Fomalhaut',22,57.6,-1,29,37],['Markab',23,4.8,1,15,12]];
+const CONST=[['Orión',['Betelgeuse','Bellatrix','Mintaka','Alnilam','Alnitak','Saiph','Rigel','Mintaka'],['Betelgeuse','Alnitak']],
+ ['Osa Mayor',['Alkaid','Mizar','Alioth','Megrez','Dubhe','Merak','Phecda','Megrez']],
+ ['Casiopea',['Caph','Schedar','Cih (γ Cas)','Ruchbah','Segin']],
+ ['Cruz del Sur',['Acrux','Gacrux'],['Mimosa','δ Crucis']],
+ ['Osa Menor',['Polar','Kochab','Pherkad']]];
+const nJ=ms=>ms/86400000+2440587.5-2451545.0;
+const ghaAries=ms=>mod(280.46061837+360.98564736629*nJ(ms),360);
+function sun(ms){const n=nJ(ms),L=mod(280.460+0.9856474*n,360),g=mod(357.528+0.9856003*n,360),
+  lam=L+1.915*sin(g)+0.020*sin(2*g),eps=23.439-0.0000004*n,
+  ra=mod(atan2(cos(eps)*sin(lam),cos(lam)),360),dec=asin(sin(eps)*sin(lam)),r=1.00014-0.01671*cos(g)-0.00014*cos(2*g);
+  return {ra,dec,gha:mod(ghaAries(ms)-ra,360),sd:16.0/r,eps,lam};}
+function star(name,ms){const s=STARS.find(x=>x[0]===name);let ra=(s[1]+s[2]/60)*15,dec=s[3]*(s[4]+s[5]/60);
+  if(!s[6]){const y=nJ(ms)/365.25;ra+=(3.075+1.336*sin(ra)*tan(dec))*y*15/3600;dec+=20.04*cos(ra)*y/3600;}
+  const sha=mod(360-ra,360);return {ra,dec,sha,gha:mod(ghaAries(ms)+sha,360)};}
+
+/* ---------- estado ---------- */
+const S={tab:'esfera',
+  lat:41+37/60,lon:-(125+52/60),ms:Date.UTC(2023,10,21,6,57,30),astro:'Merak',mdec:19.05,mhl:45,mhk:'L',mode:'coord',play:false,tk:'ut',tof:1,tofRef:'ut',gofA:'',gofB:'',gofRef:'ut',c_dm:-(3+20/60),c_y0:2016,c_y1:2026,c_va:7,c_vk:'E',c_des:'-7',c_ra:'345',c_da:'',
+  x:{za:'',av:'',cara:'S',rv:'',vb:'',ev:'ocaso',cev:'c1'},
+  lay:{},
+  ga_lat:38+56/60,ga_lon:-(74+58/60),gb_lat:48+27/60,gb_lon:-(5+8/60),gmode:'orto',grv:130,gdist:240,
+  gms:Date.UTC(2023,2,25,5,5,5),gkind:'civil',
+  r_lat:-(39+25/60),r_lon:-(166+23/60),rrv:170,rvb:13,
+  dets:[{n:'Estrella 1',hz:'18:12:00',z:'245',da:'2,4'},{n:'Estrella 2',hz:'18:24:00',z:'130',da:'-3,1'},{n:'',hz:'',z:'',da:''}],
+  x_ai:31+29.8/60,xci:8,xe:6,xastro:'li',xms:Date.UTC(2023,0,18),xder:19.1,xizq:33.3};
+const num=v=>{if(v===''||v==null)return NaN;return parseFloat(String(v).replace(',','.').replace('−','-'))};
+
+/* ---------- campos de ángulo ---------- */
+function mkAng(el){const k=el.dataset.k,h=el.dataset.h||'';
+  el.innerHTML='<input class="g" type="number" min="0" step="1" aria-label="grados"><i>°</i><input class="m" type="number" min="0" max="59.9" step="0.1" aria-label="minutos"><i>′</i>'+
+    (h?'<select aria-label="hemisferio"><option>'+h[0]+'</option><option>'+h[1]+'</option></select>':'');
+  el.querySelector('.g').id='a-'+k+'-g';el.querySelector('.m').id='a-'+k+'-m';
+  setAng(el);
+  el.addEventListener('input',()=>{const g=num(el.querySelector('.g').value)||0,m=num(el.querySelector('.m').value)||0,sel=el.querySelector('select');
+    let v=g+m/60;if(sel&&sel.selectedIndex===1)v=-v;if(k==='lon')keepWall(()=>{S.lon=v});else S[k]=v;refresh();});}
+function setAng(el){const k=el.dataset.k,v=S[k],a=Math.abs(v);let g=Math.floor(a+1e-9),m=Math.round((a-g)*600)/10;if(m>=60){g++;m=0}
+  el.querySelector('.g').value=g;el.querySelector('.m').value=m;const sel=el.querySelector('select');if(sel)sel.selectedIndex=v<0?1:0;}
+document.querySelectorAll('.ang').forEach(mkAng);
+const syncAngs=()=>document.querySelectorAll('.ang').forEach(el=>{if(!el.contains(document.activeElement))setAng(el)});
+
+/* ---------- three: utilidades ---------- */
+function mk3(view,dist){
+  const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  view.insertBefore(renderer.domElement,view.firstChild);
+  const scene=new THREE.Scene(),camera=new THREE.PerspectiveCamera(30,1,0.1,60);
+  const controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enablePan=false;controls.enableDamping=true;controls.dampingFactor=.12;controls.rotateSpeed=.7;controls.minDistance=2.4;controls.maxDistance=12;
+  const labels=document.createElement('div');labels.className='labels';view.appendChild(labels);
+  const o={view,renderer,scene,camera,controls,labels,items:[],group:null,w:0,h:0,dist,q:new THREE.Quaternion(),handles:[],drag:null,hot:null,onDrag:null,onDragEnd:null,opaque:false};
+  // Puntos que se mueven con el botón derecho (o con el dedo, si se empieza sobre ellos)
+  const cv=renderer.domElement,rc=new THREE.Raycaster(),ndc=new THREE.Vector2();
+  const pos=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
+  const pick=(e,tol)=>{const m=pos(e);let best=null,bd=1e9;
+    for(const h of o.handles){const wv=h.v.clone().applyQuaternion(o.q),vis=wv.dot(camera.position)>1;if(!vis&&o.opaque)continue;
+      wv.project(camera);const d=Math.hypot((wv.x+1)/2*o.w-m.x,(1-wv.y)/2*o.h-m.y);if(d<=tol&&d+(vis?0:10)<bd){bd=d+(vis?0:10);best=h;h.vis=vis}}
+    return best};
+  const hit=(e,back)=>{const m=pos(e);ndc.set(m.x/o.w*2-1,1-m.y/o.h*2);rc.setFromCamera(ndc,camera);
+    const O=rc.ray.origin,d=rc.ray.direction,b=O.dot(d),disc=b*b-(O.lengthSq()-1);
+    return disc<0?O.clone().addScaledVector(d,-b).normalize():O.clone().addScaledVector(d,-b+(back?1:-1)*Math.sqrt(disc)).normalize()};
+  view.addEventListener('contextmenu',e=>e.preventDefault());
+  view.addEventListener('pointerdown',e=>{if(!o.onDrag||o.drag)return;const mouse=e.pointerType==='mouse';if(mouse?e.button!==2:!e.isPrimary)return;
+    const h=pick(e,mouse?20:26);if(!h)return;e.preventDefault();e.stopPropagation();
+    o.q.identity();controls.enabled=false;o.drag={id:h.id,pid:e.pointerId,back:!h.vis};cv.style.cursor='grabbing';
+    try{view.setPointerCapture(e.pointerId)}catch(_){}
+    o.onDrag(o.drag,null,e);},true);
+  view.addEventListener('pointermove',e=>{
+    if(o.drag){if(e.pointerId!==o.drag.pid)return;e.preventDefault();e.stopPropagation();o.onDrag(o.drag,hit(e,o.drag.back),e);return;}
+    if(e.pointerType==='mouse'&&o.onDrag){const h=pick(e,20);o.hot=h?h.id:null;cv.style.cursor=h?'grab':'';}},true);
+  const end=e=>{if(!o.drag||e.pointerId!==o.drag.pid)return;try{view.releasePointerCapture(e.pointerId)}catch(_){}
+    o.drag=null;controls.enabled=true;cv.style.cursor='';if(o.onDragEnd)o.onDragEnd();};
+  view.addEventListener('pointerup',end,true);view.addEventListener('pointercancel',end,true);
+  const fit=()=>{const w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;const first=!o.w;o.w=w;o.h=h;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();
+    if(first){const k=dist/Math.min(1,w/h*0.95);camera.position.setLength(k);}};
+  o.fit=fit;new ResizeObserver(fit).observe(view);return o;}
+function clear3(o){if(o.group){o.scene.remove(o.group);o.group.traverse(x=>{if(x.geometry)x.geometry.dispose();if(x.material)x.material.dispose()});}
+  o.group=new THREE.Group();o.group.quaternion.copy(o.q);o.scene.add(o.group);o.labels.textContent='';o.items=[];o.handles=[];}
+function line3(o,pts,color,op,dash){if(pts.length<2)return;const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const m=dash?new THREE.LineDashedMaterial({color,transparent:true,opacity:op==null?1:op,dashSize:.035,gapSize:.035})
+              :new THREE.LineBasicMaterial({color,transparent:true,opacity:op==null?1:op});
+  const l=new THREE.Line(g,m);if(dash)l.computeLineDistances();o.group.add(l);}
+function tube3(o,pts,color,r){if(pts.length<2||pts[0].distanceTo(pts[pts.length-1])<1e-4&&pts.length<4)return;
+  const g=new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),Math.max(6,pts.length*2),r||.0085,6,false);
+  o.group.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color})));}
+function dot3(o,v,color,r){const m=new THREE.Mesh(new THREE.SphereGeometry(r||.02,12,10),new THREE.MeshBasicMaterial({color}));m.position.copy(v);o.group.add(m);}
+function lab3(o,v,text,color,cls,off){const el=document.createElement('span');el.textContent=text;el.style.color=color;if(cls)el.className=cls;o.labels.appendChild(el);o.items.push({v:v.clone(),el,off:off==null?13:off});}
+function hand3(o,v,id){const el=document.createElement('i');el.className='hd';o.labels.appendChild(el);o.handles.push({v:v.clone(),id,el});}
+const _c=new THREE.Vector3(),QI=new THREE.Quaternion();
+function place3(o){if(!o.w)return;_c.set(0,0,0).project(o.camera);const cx=(_c.x+1)/2*o.w,cy=(1-_c.y)/2*o.h,cam=o.camera.position;
+  const put=[];
+  for(const it of o.items){if(it.w==null){it.w=it.el.offsetWidth||40;it.h=it.el.offsetHeight||16;}
+    const wv=it.v.clone().applyQuaternion(o.q),p=wv.clone().project(o.camera);let x=(p.x+1)/2*o.w,y=(1-p.y)/2*o.h,dx=x-cx,dy=y-cy;const m=Math.hypot(dx,dy);
+    if(m<6){dx=0;dy=-1}else{dx/=m;dy/=m}
+    let px,py,k=0,ok;
+    do{px=cl(x+dx*(it.off+k*14),it.w/2+4,o.w-it.w/2-4);py=cl(y+dy*(it.off+k*14),it.h/2+2,o.h-it.h/2-2);
+      ok=!put.some(q=>Math.abs(q.x-px)<(q.w+it.w)/2+2&&Math.abs(q.y-py)<(q.h+it.h)/2);k++}while(!ok&&k<4);
+    const back=wv.dot(cam)<0;
+    if(ok||!back)put.push({x:px,y:py,w:it.w,h:it.h});
+    it.el.style.transform='translate(-50%,-50%) translate('+px.toFixed(1)+'px,'+py.toFixed(1)+'px)';
+    it.el.style.opacity=back?(ok?.42:0):1;}
+  for(const h of o.handles){const wv=h.v.clone().applyQuaternion(o.q),vis=wv.dot(cam)>1;wv.project(o.camera);
+    h.el.style.transform='translate('+((wv.x+1)/2*o.w).toFixed(1)+'px,'+((1-wv.y)/2*o.h).toFixed(1)+'px)';
+    h.el.style.opacity=vis?1:(o.opaque?0:.4);h.el.classList.toggle('on',o.hot===h.id||!!(o.drag&&o.drag.id===h.id));}}
+const arc=(fn,a,b,step)=>{const n=Math.max(2,Math.ceil(Math.abs(b-a)/(step||3))),o=[];for(let i=0;i<=n;i++)o.push(fn(a+(b-a)*i/n));return o};
+function slerp(a,b,t){const w=a.angleTo(b);if(w<1e-6)return a.clone();const s=Math.sin(w);
+  return a.clone().multiplyScalar(Math.sin((1-t)*w)/s).add(b.clone().multiplyScalar(Math.sin(t*w)/s));}
+
+/* =====================================================================
+   ESFERA CELESTE
+   ===================================================================== */
+const LAY=[['hor','Horizonte y puntos cardinales',CS.hor],['zen','Cénit, nadir y vertical',CS.ink],['eje','Eje del mundo y polos',CS.eq],
+ ['ecu','Ecuador celeste',CS.eq],['mer','Meridiano del lugar',CS.mer],['pv','Primer vertical',CS.hor],
+ ['par','Paralelo del astro (arco diurno)',CS.eq],['ch','Círculo horario del astro',CS.eq],['ver','Vertical del astro',CS.hor],
+ ['alm','Almicantarat',CS.hor],['arc','Arcos medidos (l, δ, hL, a, Z)',CS.ink],['tri','Triángulo de posición',CS.tri],
+ ['oo','Puntos de orto y ocaso',CS.tri],['crep','Crepúsculos (Sol a −6°, −12° y −18°)','#9db9ff'],['ecl','Eclíptica, Aries y Libra',CS.star],['est','Estrellas y constelaciones',CS.star]];
+const PRE={coord:'hor zen eje ecu mer par ch ver arc tri',horario:'hor zen eje ecu mer ch arc',orto:'hor zen eje ecu mer par oo',crep:'hor zen eje ecu mer par oo crep',
+ meridiana:'hor zen eje ecu mer par arc',polar:'hor zen eje mer ver arc est',recta:'hor zen eje ecu mer ch ver arc tri',
+ libre:'hor zen eje ecu mer pv par ch ver alm arc ecl est'};
+const TIT={coord:['Altura y azimut','Con la latitud, la declinación y el horario se resuelve el triángulo de posición.'],
+ horario:['Horario del astro','El horario en el lugar es el horario en Greenwich más la longitud (Este suma, Oeste resta).'],
+ orto:['Orto y ocaso','En el orto y el ocaso verdaderos la altura es 0°. El azimut sale de la declinación y la latitud.'],
+ crep:['Crepúsculos','Civil: el Sol baja hasta 6° bajo el horizonte. Náutico: hasta 12°. Astronómico: hasta 18°.'],
+ meridiana:['Paso por el meridiano','Al culminar, el astro está en el meridiano superior: horario 0° y altura máxima.'],
+ polar:['La Polar','La altura de la Polar es casi la latitud; su azimut, casi el Norte.'],
+ recta:['Recta de altura','La diferencia entre la altura verdadera y la estimada, y el azimut, dan el determinante.'],
+ libre:['La esfera celeste','Activa o quita elementos en «Qué se dibuja» y gira el cielo.']};
+const layBox=$('e-lay');
+LAY.forEach(l=>{const lb=document.createElement('label');lb.innerHTML='<input type="checkbox" id="ly-'+l[0]+'"><span style="color:'+l[2]+'">●</span> '+l[1];layBox.appendChild(lb);
+  lb.querySelector('input').addEventListener('change',e=>{S.lay[l[0]]=e.target.checked;refresh()});});
+function setMode(m){S.mode=m;LAY.forEach(l=>S.lay[l[0]]=PRE[m].split(' ').includes(l[0]));
+  if(m==='polar')S.astro='Polar';if(m==='crep')S.astro='Sol';if((m==='meridiana'||m==='orto')&&S.astro!=='man'&&S.astro==='Polar')S.astro='Sol';
+  $('e-lays').open=m==='libre';}
+const selA=$('e-astro');
+selA.innerHTML='<option value="Sol">Sol</option><option value="man">Datos a mano (δ y horario)</option><optgroup label="Estrellas">'+
+  STARS.map(s=>s[0]).sort((a,b)=>a.localeCompare(b,'es')).map(n=>'<option>'+n+'</option>').join('')+'</optgroup>';
+
+function calcE(){
+  const lat=S.lat,lon=S.lon,man=S.astro==='man';let dec,hG,hL,eph=null,name,rate=15.041,gA=null;
+  if(man){dec=S.mdec;if(S.mhk==='G'){hG=mod(S.mhl,360);hL=mod(hG+lon,360)}else{hL=mod(S.mhl,360);hG=mod(hL-lon,360)}name='Astro';}
+  else{gA=ghaAries(S.ms);if(S.astro==='Sol'){eph=sun(S.ms);rate=15;name='Sol'}else{eph=star(S.astro,S.ms);name=S.astro}
+    dec=eph.dec;hG=eph.gha;hL=mod(hG+lon,360);}
+  const sl=sin(lat),clat=cos(lat),sd=sin(dec),cd=cos(dec);
+  const alt=asin(sl*sd+clat*cd*cos(hL)),Z=mod(atan2(-cd*sin(hL),sd*clat-cd*cos(hL)*sl),360);
+  const P=hL<=180?hL:360-hL,lado=hL<=180?'W':'E';
+  const x=-tan(lat)*tan(dec);let H0=null,Zo=null;
+  if(Math.abs(x)<1&&Math.abs(lat)<89.9){H0=acos(x);Zo=acos(sd/clat);}
+  const aSup=90-Math.abs(lat-dec),aInf=Math.abs(lat+dec)-90,caraSup=dec>lat?'N':'S';
+  return {lat,lon,man,dec,hG,hL,eph,name,rate,gA,lhaA:gA==null?null:mod(gA+lon,360),alt,Z,P,lado,H0,Zo,aSup,aInf,caraSup,
+    zona:Math.round(lon/15)};}
+
+let E3=null;
+function buildE(c){
+  const o=E3,L=S.lay,lat=c.lat;clear3(o);
+  const hv=(a,z)=>new THREE.Vector3(cos(a)*sin(z),sin(a),-cos(a)*cos(z));
+  const eqv=(d,t)=>new THREE.Vector3(-cos(d)*sin(t),sin(lat)*sin(d)+cos(lat)*cos(d)*cos(t),-(cos(lat)*sin(d)-sin(lat)*cos(d)*cos(t)));
+  const sp=lat>=0?1:-1,zp=lat>=0?0:180,Pe=eqv(90*sp,0),Pd=eqv(-90*sp,0),A=eqv(c.dec,c.hL),Zen=new THREE.Vector3(0,1,0),Nad=new THREE.Vector3(0,-1,0);
+  // cuerpo de la esfera
+  o.group.add(new THREE.Mesh(new THREE.SphereGeometry(1,48,32),new THREE.MeshBasicMaterial({color:0x7f9cff,transparent:true,opacity:.055,depthWrite:false,side:THREE.BackSide})));
+  line3(o,arc(t=>new THREE.Vector3(cos(t),0,sin(t)),0,360),0xaabef0,.25);
+  if(L.hor){const disc=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshBasicMaterial({color:C.hor,transparent:true,opacity:.09,side:THREE.DoubleSide,depthWrite:false}));
+    disc.rotation.x=-Math.PI/2;o.group.add(disc);line3(o,arc(z=>hv(0,z),0,360),C.hor,1);
+    [['N',0],['E',90],['S',180],['W',270]].forEach(k=>{dot3(o,hv(0,k[1]),C.hor,.018);lab3(o,hv(0,k[1]),k[0],CS.hor,'big')});}
+  dot3(o,new THREE.Vector3(0,0,0),C.ink,.02);
+  if(L.zen){line3(o,[Zen,Nad],C.ink,.45,true);dot3(o,Zen,C.ink);lab3(o,Zen,'Cénit',CS.ink);dot3(o,Nad,C.ink);lab3(o,Nad,'Nadir',CS.ink);hand3(o,Zen,'zen');}
+  if(L.eje){line3(o,[Pe,Pd],C.eq,.7,true);dot3(o,eqv(90,0),C.eq);lab3(o,eqv(90,0),'PN',CS.eq);
+    dot3(o,eqv(-90,0),C.eq);lab3(o,eqv(-90,0),'PS',CS.eq);hand3(o,eqv(90,0),'pn');hand3(o,eqv(-90,0),'ps');}
+  if(L.mer){line3(o,arc(t=>hv(t,0),0,180),C.mer,.95);line3(o,arc(t=>hv(-t,0),0,180),C.mer,.6,true);}
+  if(L.ecu){line3(o,arc(t=>eqv(0,t),0,360),C.eq,.95);dot3(o,eqv(0,0),C.eq,.016);lab3(o,eqv(0,0),'Q',CS.eq);dot3(o,eqv(0,180),C.eq,.016);lab3(o,eqv(0,180),'Q′',CS.eq);}
+  if(L.pv)line3(o,arc(t=>new THREE.Vector3(cos(t),sin(t),0),0,360),C.hor,.55);
+  if(L.par){let seg=[],up=null;const flush=()=>{if(seg.length>1)line3(o,seg,C.eq,up?.9:.5,!up);};
+    for(let t=0;t<=360;t+=2){const v=eqv(c.dec,t),u=v.y>=0;if(up!==null&&u!==up){seg.push(v);flush();seg=[v]}else seg.push(v);up=u;}flush();}
+  if(L.ch)line3(o,arc(d=>eqv(d,c.hL),-90,90),C.eq,.8);
+  if(L.ver)line3(o,arc(a=>hv(a,c.Z),90,-90),C.hor,.8);
+  if(L.alm)line3(o,arc(z=>hv(c.alt,z),0,360),C.hor,.5,true);
+  if(L.crep)[[-6,'Civil −6°',.85],[-12,'Náutico −12°',.85],[-18,'Astronómico −18°',.45]].forEach(k=>{line3(o,arc(z=>hv(k[0],z),0,360),0x9db9ff,k[2],true);lab3(o,hv(k[0],215),k[1],'#9db9ff','',12);});
+  if(L.arc){
+    tube3(o,arc(a=>hv(a,zp),0,Math.abs(lat)),C.mer);lab3(o,hv(Math.abs(lat)/2,zp),'l',CS.mer,'big',15);
+    if(Math.abs(c.dec)>.3){tube3(o,arc(d=>eqv(d,c.hL),0,c.dec),C.eq);lab3(o,eqv(c.dec/2,c.hL),'δ',CS.eq,'big',15);}
+    if(c.hL>.3){tube3(o,arc(t=>eqv(0,t),0,c.hL),C.eq);lab3(o,eqv(0,c.hL/2),'hL',CS.eq,'big',16);}
+    if(Math.abs(c.alt)>.3){tube3(o,arc(a=>hv(a,c.Z),0,c.alt),C.hor);lab3(o,hv(c.alt/2,c.Z),'a',CS.hor,'big',15);}
+    if(c.Z>.3){tube3(o,arc(z=>hv(0,z),0,c.Z),C.hor);lab3(o,hv(0,c.Z/2),'Z',CS.hor,'big',16);}}
+  if(L.tri){const s1=arc(a=>hv(a,zp),Math.abs(lat),90),s2=arc(a=>hv(a,c.Z),90,c.alt),s3=arc(d=>eqv(d,c.hL),c.dec,90*sp);
+    tube3(o,s1,C.tri,.0075);tube3(o,s2,C.tri,.0075);tube3(o,s3,C.tri,.0075);
+    const n=s3.length-1,m=8,pos=[],idx=[];
+    for(let i=0;i<=n;i++)for(let j=0;j<=m;j++){const v=slerp(Zen,s3[i],j/m);pos.push(v.x*.998,v.y*.998,v.z*.998)}
+    for(let i=0;i<n;i++)for(let j=0;j<m;j++){const a=i*(m+1)+j,b=a+1,d=a+m+1,e=d+1;idx.push(a,d,b,b,d,e)}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);
+    o.group.add(new THREE.Mesh(g,new THREE.MeshBasicMaterial({color:C.tri,transparent:true,opacity:.2,side:THREE.DoubleSide,depthWrite:false})));
+    lab3(o,hv((Math.abs(lat)+90)/2,zp),'90°−l',CS.tri,'',17);lab3(o,hv((c.alt+90)/2,c.Z),'90°−a',CS.tri,'',17);
+    lab3(o,eqv((c.dec+90*sp)/2,c.hL),(c.dec*sp>=0?'90°−δ':'90°+δ'),CS.tri,'',17);}
+  if(L.oo&&c.Zo!=null){const o1=hv(0,c.Zo),o2=hv(0,360-c.Zo);dot3(o,o1,C.tri,.026);lab3(o,o1,'Orto',CS.tri,'big');dot3(o,o2,C.tri,.026);lab3(o,o2,'Ocaso',CS.tri,'big');
+    tube3(o,arc(z=>hv(0,z),90,c.Zo),C.tri,.007);tube3(o,arc(z=>hv(0,z),270,360-c.Zo),C.tri,.007);}
+  if(c.lhaA!=null){
+    if(L.ecl){const eps=23.44,ec=lm=>{const ra=atan2(cos(eps)*sin(lm),cos(lm)),d=asin(sin(eps)*sin(lm));return eqv(d,c.lhaA-ra)};
+      line3(o,arc(ec,0,360),C.star,.7,true);dot3(o,ec(0),C.star,.02);lab3(o,ec(0),'γ Aries',CS.star);dot3(o,ec(180),C.star,.016);lab3(o,ec(180),'Libra',CS.star);
+      if(S.astro!=='Sol'){const s=sun(S.ms),v=eqv(s.dec,mod(s.gha+c.lon,360));dot3(o,v,0xffd27a,.028);lab3(o,v,'Sol',CS.star);}}
+    if(L.est){const pos={};STARS.forEach(s=>{const e=star(s[0],S.ms),v=eqv(e.dec,mod(e.gha+c.lon,360));pos[s[0]]=v;if(s[0]!==S.astro)dot3(o,v,0xcfdcff,.011);});
+      CONST.forEach(k=>{for(let i=1;i<k.length;i++)line3(o,k[i].map(n=>pos[n]),0xcfdcff,.5);lab3(o,pos[k[1][0]],k[0],'#b9c6e6','',12);});
+      if(S.astro!=='Polar')lab3(o,pos.Polar,'Polar','#cfdcff','',10);}}
+  // el astro
+  const below=c.alt<0;dot3(o,A,below?0xb9a878:C.star,.034);
+  lab3(o,A,c.name+(below?' (bajo el horizonte)':''),CS.star,'big',18);hand3(o,A,'astro');
+}
+/* Arrastre sobre la esfera. p es el punto de la esfera bajo el cursor (x = Este, y = Cénit, z = −Norte).
+   Cénit: cambia latitud y longitud; mientras se arrastra, el ecuador y los polos se quedan quietos y es el horizonte el que se mueve.
+   Polos: cambian la latitud (altura del polo). Astro: δ y horario si los datos son a mano; si no, la hora (recorre su paralelo). */
+const TOUCH=window.matchMedia&&matchMedia('(pointer:coarse)').matches;
+const HINT={e:TOUCH?'Arrastra para girar · arrastra un punto con anillo para moverlo':'Izquierdo: girar · rueda: acercar · derecho sobre un punto con anillo: moverlo',
+            g:TOUCH?'Arrastra para girar · arrastra A o B para moverlos':'Izquierdo: girar · derecho sobre A o B: moverlos'};
+$('e-hint').textContent=HINT.e;$('g-hint').textContent=HINT.g;
+const live=(id,msg)=>{const el=$(id);el.textContent=msg;el.classList.add('live')};
+function dragE(d,p,e){
+  if(!d.init){d.init=1;d.lat0=S.lat;d.lon0=S.lon;S.play=false;}
+  if(!p)return;
+  const sn=e&&e.shiftKey?1:60,rd=x=>Math.round(x*sn)/sn;
+  const inv=(v,l)=>({d:asin(-v.z*cos(l)+v.y*sin(l)),t:atan2(-v.x,v.y*cos(l)+v.z*sin(l))});
+  let msg='';
+  if(d.id==='zen'){const l0=d.lat0,k=inv(p,l0),la=cl(rd(k.d),-89.5,89.5),t=rd(k.t);
+    S.lat=la;keepWall(()=>{S.lon=mod(d.lon0-t+180,360)-180});
+    const w=new THREE.Vector3(-cos(la)*sin(t),sin(l0)*sin(la)+cos(l0)*cos(la)*cos(t),-(cos(l0)*sin(la)-sin(l0)*cos(la)*cos(t)));
+    const Ew=new THREE.Vector3(0,sin(l0),-cos(l0)).cross(w).normalize(),Zw=Ew.clone().cross(w);
+    E3.q.setFromRotationMatrix(new THREE.Matrix4().makeBasis(Ew,w,Zw));
+    msg='l = '+latS(S.lat)+' · L = '+lonS(S.lon);}
+  else if(d.id==='pn'||d.id==='ps'){const sg=d.id==='pn'?1:-1;S.lat=cl(rd(atan2(sg*p.y,-sg*p.z)),-89.5,89.5);msg='l = '+latS(S.lat);}
+  else{const k=inv(p,S.lat),c=calcE();
+    if(c.man){S.mdec=cl(rd(k.d),-89.9,89.9);const hL=mod(rd(k.t),360);S.mhl=S.mhk==='G'?mod(hL-S.lon,360):hL;msg='δ = '+decS(S.mdec)+' · hL = '+dm(hL);}
+    else{S.ms+=Math.round((mod(k.t-c.hL+180,360)-180)/c.rate*3600)*1000;const w=S.ms+tOff()*3600000;msg=fecha(w)+' · '+hms(utH(w))+' '+TKS[S.tk]+' · hL = '+dm(calcE().hL);}}
+  live('e-hint',msg);refresh();
+}
+
+function extraE(){
+  const m=S.mode,x=S.x,box=$('e-extra');let h='';
+  const fld=(id,lab,unit,val,w)=>'<div class="f"><label for="'+id+'">'+lab+'</label><div class="row"><input id="'+id+'" type="text" inputmode="decimal" value="'+(val==null?'':val)+'" style="width:'+(w||80)+'px"><i>'+unit+'</i></div></div>';
+  if(m==='orto')h='<div class="f"><label for="ex-ev">Momento</label><select id="ex-ev"><option value="orto">Orto (salida)</option><option value="ocaso">Ocaso (puesta)</option></select></div>'+
+    fld('ex-za','Azimut de aguja','° (opcional, para la Ct)',x.za)+'<div class="row"><button class="go" id="ex-go" type="button">Llevar el astro a ese momento</button></div>';
+  if(m==='crep')h='<div class="f"><label for="ex-cev">Momento</label><select id="ex-cev"><option value="n0">Empieza el crepúsculo náutico matutino (−12°)</option><option value="c0">Empieza el civil matutino (−6°)</option>'+
+    '<option value="orto">Orto verdadero</option><option value="ocaso">Ocaso verdadero</option><option value="c1">Termina el civil vespertino (−6°)</option><option value="n1">Termina el náutico vespertino (−12°)</option></select></div>'+
+    '<div class="row"><button class="go" id="ex-go" type="button">Llevar el Sol a ese momento</button></div>';
+  if(m==='meridiana')h=fld('ex-av','Altura verdadera','° en grados y décimas o «g m»',x.av,96)+
+    '<div class="f"><label for="ex-cara">Culmina cara al</label><select id="ex-cara"><option value="S">Sur (Z = 180°)</option><option value="N">Norte (Z = 000°)</option></select></div>'+
+    fld('ex-rv','Rumbo verdadero','° (opcional)',x.rv)+fld('ex-vb','Velocidad','nudos (opcional)',x.vb)+
+    '<div class="row"><button class="go" id="ex-go" type="button">Llevar el astro al meridiano</button><button id="ex-lat" type="button">Usar la latitud obtenida</button></div>';
+  if(m==='polar')h=fld('ex-av','Altura verdadera','° («g m», opcional)',x.av,96)+fld('ex-za','Azimut de aguja','° (opcional, para la Ct)',x.za)+
+    '<div class="row"><button id="ex-lat" type="button">Usar la latitud obtenida</button></div>';
+  if(m==='recta')h=fld('ex-av','Altura verdadera','° («g m»)',x.av,96)+'<div class="row"><button class="go" id="ex-send" type="button">Llevar el determinante a «Rectas de altura»</button></div>';
+  box.innerHTML=h;$('e-extra-box').hidden=!h;
+  const bind=(id,k)=>{const el=$(id);if(el){if(el.tagName==='SELECT')el.value=x[k];el.addEventListener('input',()=>{x[k]=el.value;refresh()})}};
+  bind('ex-ev','ev');bind('ex-cev','cev');bind('ex-za','za');bind('ex-av','av');bind('ex-cara','cara');bind('ex-rv','rv');bind('ex-vb','vb');
+  const go=$('ex-go');if(go)go.addEventListener('click',()=>{if(m==='crep'){const k=crepE(),t=k&&k[x.cev];if(t!=null){S.ms=t;refresh()}return}const c=calcE();let target=0;
+    if(m==='orto'){if(c.H0==null)return;target=x.ev==='ocaso'?c.H0:360-c.H0}
+    const d=mod(target-c.hL,360);if(c.man){if(S.mhk==='G')S.mhl=mod(S.mhl+d,360);else S.mhl=mod(target,360)}else S.ms+=d/c.rate*3600000;refresh();});
+  const bl=$('ex-lat');if(bl)bl.addEventListener('click',()=>{const r=resE(calcE());if(r.latObs!=null&&isFinite(r.latObs)){S.lat=cl(r.latObs,-89.9,89.9);refresh()}});
+  const bs=$('ex-send');if(bs)bs.addEventListener('click',()=>{const c=calcE(),r=resE(c);if(r.da==null)return;
+    const i=S.dets.findIndex(d=>!String(d.z).trim());const d=S.dets[i<0?2:i];d.n=c.name;d.z=f1(c.Z);d.da=f1(r.da);
+    if(!c.man){d.hz=hms(utH(S.ms)+c.zona).replace(/[hms ]+/g,':').replace(/:$/,'');}
+    S.r_lat=S.lat;S.r_lon=S.lon;go2('rectas');});
+}
+const utH=ms=>mod(ms,86400000)/3600000;
+/* Formato en que se escribe la hora: UT, legal (huso), civil del lugar u oficial. S.ms es siempre UT.
+   La hora tecleada es un dato del enunciado: se conserva al cambiar de formato o de longitud (keepWall). */
+const tOff=()=>S.tk==='legal'?Math.round(S.lon/15):S.tk==='civil'?S.lon/15:S.tk==='oficial'?(S.tofRef==='huso'?Math.round(S.lon/15):0)+(isFinite(S.tof)?S.tof:0):0;
+const keepWall=fn=>{const w=S.ms+tOff()*3600000;fn();S.ms=w-tOff()*3600000;};
+const TKS={ut:'UT',legal:'Hz',civil:'HcL',oficial:'Ho'};
+/* Horas del Sol en el día en curso: crepúsculos náutico (−12°) y civil (−6°), orto y ocaso verdaderos (0°). Devuelve instantes UT en ms. */
+function crepE(){
+  if(S.astro==='man')return null;
+  const lat=S.lat,lon=S.lon,h0=mod(sun(S.ms).gha+lon,360),tm=S.ms-(mod(h0+180,360)-180)/15*3600000;
+  const ev=(a,sg)=>{let t=tm;for(let i=0;i<3;i++){const e=sun(t),x=(sin(a)-sin(lat)*sin(e.dec))/(cos(lat)*cos(e.dec));if(Math.abs(x)>1)return null;
+    const H=acos(x),hl=mod(e.gha+lon,360);t+=(mod((sg<0?360-H:H)-hl+180,360)-180)/15*3600000;}return t};
+  return {tm,n0:ev(-12,-1),c0:ev(-6,-1),orto:ev(0,-1),ocaso:ev(0,1),c1:ev(-6,1),n1:ev(-12,1)};}
+function parseAng(v){v=String(v||'').trim().replace(/[°′'º]/g,' ').replace(/,/g,'.');if(!v)return NaN;const p=v.split(/\s+/).map(Number);
+  if(p.some(isNaN))return NaN;return p.length>1?p[0]+p[1]/60:p[0];}
+function resE(c){ // resultados específicos del ejercicio
+  const x=S.x,r={};const av=parseAng(x.av),za=num(x.za);
+  if(S.mode==='recta'&&isFinite(av))r.da=(av-c.alt)*60;
+  if(S.mode==='meridiana'){if(isFinite(av)){const z=90-av;r.latObs=x.cara==='S'?c.dec+z:c.dec-z;}
+    const rv=num(x.rv),vb=num(x.vb);let dl=0;if(isFinite(rv)&&isFinite(vb))dl=vb*sin(rv)/(60*cos(c.lat));
+    r.dl=dl;r.tmer=mod(360-c.hL,360)/(c.rate+dl);}
+  if(S.mode==='polar'){if(isFinite(av)){const A=sin(c.dec),B=cos(c.dec)*cos(c.hL),R=Math.hypot(A,B);r.latObs=asin(sin(av)/R)-atan2(B,A);}
+    if(isFinite(za)){r.ct=mod(c.Z-za+180,360)-180;}}
+  if(S.mode==='orto'&&c.Zo!=null){r.zv=x.ev==='ocaso'?360-c.Zo:c.Zo;if(isFinite(za))r.ct=mod(r.zv-za+180,360)-180;
+    const tgt=x.ev==='ocaso'?c.H0:360-c.H0;r.tev=mod(tgt-c.hL,360)/c.rate;}
+  return r;}
+
+function panelE(c){
+  const r=resE(c),m=S.mode,list=[];
+  if(!c.man){const at=o=>{const t=S.ms+o*3600000;return hms(utH(t))+' · '+fecha(t)};
+    list.push(['Hora UT (HcG)',at(0)],['Hora legal (zona '+(c.zona>=0?'+':'−')+Math.abs(c.zona)+')',at(c.zona)],['Hora civil del lugar',at(c.lon/15)]);
+    if(S.tk==='oficial')list.push(['Hora oficial',at(tOff())]);}
+  if(!c.man&&S.astro!=='Sol')list.push(['Horario de Aries en Greenwich',dm(c.gA),CS.star],['Ángulo sidéreo',dm(c.eph.sha),CS.eq]);
+  list.push(['Declinación (δ)',decS(c.dec),CS.eq],['Horario en Greenwich (hG)',dm(c.hG),CS.eq],['Horario en el lugar (hL)',dm(c.hL),CS.eq],
+    ['Ángulo en el polo (P)',dm(c.P)+' '+c.lado,CS.tri],['Altura (a)',sdm(c.alt),CS.hor],['Azimut (Z)',f1(c.Z)+'° = '+cuadr(c.Z),CS.hor]);
+  if(m==='coord'||m==='libre'||m==='recta')list.push(['Distancia cenital (90° − a)',dm(90-c.alt),CS.tri]);
+  if(m==='libre'||m==='meridiana')list.push(['Altura en el meridiano superior',sdm(c.aSup)+' cara al '+c.caraSup,CS.mer],['Altura en el meridiano inferior',sdm(c.aInf),CS.mer]);
+  if(m==='libre'||m==='orto')list.push(['Visibilidad',c.H0==null?(c.aInf>=0?'Circumpolar: nunca se pone':'No sale nunca en esta latitud'):'Sale y se pone'],
+    ['Azimut al orto / ocaso',c.Zo==null?'—':f1(c.Zo)+'° / '+f1(360-c.Zo)+'°',CS.tri]);
+  if(!c.man&&(m==='crep'||S.lay.crep)){const k=crepE(),fT=t=>t==null?'no se produce':hms(utH(t+tOff()*3600000))+' '+TKS[S.tk],cc='#9db9ff';
+    list.push(['Empieza el crepúsculo náutico',fT(k.n0),cc],['Empieza el crepúsculo civil',fT(k.c0),cc],['Orto verdadero del Sol',fT(k.orto),CS.tri],
+      ['Paso del Sol por el meridiano',fT(k.tm),CS.mer],['Ocaso verdadero del Sol',fT(k.ocaso),CS.tri],['Termina el crepúsculo civil',fT(k.c1),cc],['Termina el crepúsculo náutico',fT(k.n1),cc]);
+    if(k.ocaso!=null&&k.c1!=null)list.push(['Duración del crepúsculo civil'+(k.n1!=null?' / náutico':''),dur((k.c1-k.ocaso)/3600000)+(k.n1!=null?' / '+dur((k.n1-k.ocaso)/3600000):''),cc]);}
+  if(r.da!=null)list.push(['Diferencia de alturas (Δa)',(r.da>=0?'+':'−')+f1(Math.abs(r.da))+'′',CS.tri]);
+  if(r.latObs!=null)list.push(['Latitud observada',latS(r.latObs),CS.mer]);
+  if(r.tmer!=null)list.push(['Falta para el paso por el meridiano',dur(r.tmer),CS.mer]);
+  if(r.tev!=null)list.push(['Falta para el '+S.x.ev,dur(r.tev),CS.tri]);
+  if(r.ct!=null)list.push(['Corrección total (Ct)',f1(Math.abs(r.ct))+'° '+(r.ct>=0?'NE (+)':'NW (−)'),CS.tri]);
+  rows($('e-res'),list);
+  // cálculo
+  const sl=sin(c.lat),clt=cos(c.lat),sd=sin(c.dec),cd=cos(c.dec),cP=cos(c.P),sP=sin(c.P);let h='';
+  const hor=()=>{let t='';if(c.man)t+='<p class="fm">hL = hG + L (longitud Este suma, Oeste resta)</p><p>hL = '+dm(c.hG)+(c.lon>=0?' + ':' − ')+dm(c.lon)+' = '+dm(c.hL)+'</p>';
+    else if(S.astro==='Sol')t+='<p class="fm">hG del Sol (Almanaque, fecha y hora UT) = '+dm(c.hG)+'</p><p>hL = hG '+(c.lon>=0?'+ ':'− ')+dm(c.lon)+' = '+dm(c.hL)+'</p>';
+    else t+='<p class="fm">hG★ = hGγ + AS</p><p>hG★ = '+dm(c.gA)+' + '+dm(c.eph.sha)+' = '+dm(c.hG)+'</p><p>hL = hG '+(c.lon>=0?'+ ':'− ')+dm(c.lon)+' = '+dm(c.hL)+'</p>';
+    return t+'<p class="r">hL = '+dm(c.hL)+' → P = '+dm(c.P)+' '+c.lado+'</p>';};
+  const tri=()=>'<p class="fm">sen a = sen l · sen δ + cos l · cos δ · cos P</p><p>sen a = '+f4(sl)+' · '+f4(sd)+' + '+f4(clt)+' · '+f4(cd)+' · '+f4(cP)+' = '+f4(sl*sd+clt*cd*cP)+'</p><p class="r">a = '+sdm(c.alt)+'</p>'+
+    '<p class="fm">cotg Z = (tan δ · cos l − sen l · cos P) / sen P</p><p>cotg Z = '+(sP>1e-6?f4((tan(c.dec)*clt-sl*cP)/sP):'∞')+'</p><p class="r">Z = '+cuadr(c.Z)+' = '+f1(c.Z)+'°</p>';
+  if(m==='coord'||m==='libre')h=hor()+tri();
+  if(m==='horario')h=hor();
+  if(m==='recta'){h=hor()+tri();if(r.da!=null)h+='<p class="fm">Δa = altura verdadera − altura estimada</p><p>Δa = '+dm(parseAng(S.x.av))+' − '+dm(c.alt)+'</p><p class="r">Δa = '+(r.da>=0?'+':'−')+f1(Math.abs(r.da))+'′ · Z = '+f1(c.Z)+'°</p>';
+    else h+='<p class="w">Escribe la altura verdadera para obtener Δa.</p>';}
+  if(m==='orto'){if(c.Zo==null)h='<p class="w">Con esta latitud y declinación el astro no corta el horizonte: '+(c.aInf>=0?'es circumpolar.':'no llega a salir.')+'</p>';
+    else{h='<p class="fm">cos Z = sen δ / cos l (astro en el horizonte verdadero)</p><p>cos Z = '+f4(sd)+' / '+f4(clt)+' = '+f4(sd/clt)+'</p>'+
+      '<p class="r">Z orto = '+f1(c.Zo)+'° · Z ocaso = '+f1(360-c.Zo)+'°</p><p class="fm">Amplitud = 90° − Z, contada desde el Este (orto) o el Oeste (ocaso)</p>'+
+      '<p class="r">Amplitud = '+f1(Math.abs(90-c.Zo))+'° hacia el '+(c.dec>=0?'Norte':'Sur')+'</p>'+
+      '<p class="fm">cos P = − tan l · tan δ (horario del astro en ese instante)</p><p>P = '+dm(c.H0)+'</p>';
+      if(r.ct!=null)h+='<p class="fm">Ct = Z verdadero − Z de aguja</p><p>Ct = '+f1(r.zv)+'° − '+f1(num(S.x.za))+'°</p><p class="r">Ct = '+f1(Math.abs(r.ct))+'° '+(r.ct>=0?'NE (+)':'NW (−)')+'</p>';}}
+  if(m==='crep'){const ds=S.astro==='Sol'?c.dec:sun(S.ms).dec,s2=sin(ds),c2=cos(ds);
+    h='<p class="fm">cos P = (sen a − sen l · sen δ) / (cos l · cos δ), con a = −6° (civil) o −12° (náutico)</p>';
+    [['civil',-6],['náutico',-12]].forEach(q=>{const v=(sin(q[1])-sl*s2)/(clt*c2);
+      h+=Math.abs(v)>1?'<p class="w">Con esta latitud y declinación el Sol no llega a '+Math.abs(q[1])+'° bajo el horizonte: el crepúsculo '+q[0]+' dura toda la noche (o no hay).</p>'
+        :'<p>'+q[0][0].toUpperCase()+q[0].slice(1)+': cos P = ('+f4(sin(q[1]))+' − '+f4(sl)+' · '+f4(s2)+') / ('+f4(clt)+' · '+f4(c2)+') = '+f4(v)+'</p><p class="r">P = '+dm(acos(v))+' = '+dur(acos(v)/15)+'</p>';});
+    h+='<p class="fm">Hora del fenómeno = hora del paso por el meridiano ± P en tiempo (− por la mañana, + por la tarde).</p>'+
+       '<p class="fm">Las estrellas se observan entre el crepúsculo civil y el náutico, cuando se ven a la vez el horizonte y los astros.</p>';}
+  if(m==='meridiana'){h='<p class="fm">Tiempo hasta el meridiano = (360° − hL) / (15°/h '+(r.dl?'± variación de longitud':'')+')</p><p>'+dm(mod(360-c.hL,360))+' / '+(c.rate+r.dl).toFixed(3).replace('.',',')+' °/h</p><p class="r">Faltan '+dur(r.tmer)+
+      (c.man?'':' → paso a UT '+hms(utH(S.ms)+r.tmer)+(S.tk==='ut'?'':' = '+TKS[S.tk]+' '+hms(utH(S.ms)+tOff()+r.tmer)))+'</p>';
+    if(r.dl)h+='<p class="fm">El buque varía su longitud '+f1(Math.abs(r.dl*60))+'′ por hora hacia el '+(r.dl>0?'Este: el Sol llega antes':'Oeste: el Sol tarda más')+'.</p>';
+    if(r.latObs!=null)h+='<p class="fm">Distancia cenital z = 90° − av; latitud = δ '+(S.x.cara==='S'?'+':'−')+' z (culminación cara al '+(S.x.cara==='S'?'Sur':'Norte')+')</p>'+
+      '<p>z = 90° − '+dm(parseAng(S.x.av))+' = '+dm(90-parseAng(S.x.av))+'</p><p class="r">l = '+latS(r.latObs)+'</p>';
+    else h+='<p class="w">Escribe la altura verdadera de la meridiana para obtener la latitud.</p>';}
+  if(m==='polar'){h=hor()+'<p class="fm">Azimut de la Polar (de la figura): casi el Norte</p><p class="r">Zv = '+cuadr(c.Z)+'</p>';
+    if(r.latObs!=null)h+='<p class="fm">La latitud es la altura verdadera corregida por la posición de la Polar respecto del polo</p><p>l − av = '+sdm(r.latObs-parseAng(S.x.av)).replace('° ','° ')+'</p><p class="r">l = '+latS(r.latObs)+'</p>';
+    if(r.ct!=null)h+='<p class="fm">Ct = Zv − Za</p><p class="r">Ct = '+f1(Math.abs(r.ct))+'° '+(r.ct>=0?'NE (+)':'NW (−)')+'</p>';}
+  $('e-calc').innerHTML=h;
+  $('e-title').textContent=TIT[m][0];$('e-sub').textContent=TIT[m][1];
+}
+
+/* =====================================================================
+   GLOBO: derrotas y horas
+   ===================================================================== */
+let G3=null;
+const gv=(la,lo)=>new THREE.Vector3(cos(la)*sin(lo),sin(la),cos(la)*cos(lo));
+function calcG(){
+  const a={lat:S.ga_lat,lon:S.ga_lon};let b;
+  const mp=l=>Math.log(Math.tan(Math.PI/4+l*D/2))/D;
+  if(S.gmode==='estima'){const R=mod(S.grv,360),dist=S.gdist||0,dl=dist*cos(R)/60;let lb=cl(a.lat+dl,-89.9,89.9);
+    const dpsi=mp(lb)-mp(a.lat),q=Math.abs(dl)>1e-7?dl/dpsi:cos(a.lat);
+    const dL=Math.abs(cos(R))<1e-9?dist*sin(R)/60/cos(a.lat):tan(R)*dpsi;
+    const lm=(a.lat+lb)/2,ap=dist*sin(R);
+    b={lat:lb,lon:mod(a.lon+dL+180,360)-180};var est={R,dist,dl,ap,lm,dLm:ap/60/cos(lm),q};}
+  else b={lat:S.gb_lat,lon:S.gb_lon};
+  const dL=mod(b.lon-a.lon+180,360)-180;
+  const cosD=sin(a.lat)*sin(b.lat)+cos(a.lat)*cos(b.lat)*cos(dL),Do=acos(cosD)*60;
+  const Ri=mod(atan2(sin(dL)*cos(b.lat),cos(a.lat)*sin(b.lat)-sin(a.lat)*cos(b.lat)*cos(dL)),360);
+  const Rf=mod(atan2(sin(dL)*cos(a.lat),-(cos(b.lat)*sin(a.lat)-sin(b.lat)*cos(a.lat)*cos(dL))),360);
+  const latV=acos(cos(a.lat)*Math.abs(sin(Ri)));
+  const dpsi=mp(b.lat)-mp(a.lat),dl=b.lat-a.lat,q=Math.abs(dl)>1e-7?dl/dpsi:cos(a.lat);
+  const Rl=mod(atan2(dL,dpsi),360),Dl=Math.hypot(dl,q*dL)*60;
+  return {a,b,dL,Do,Ri,Rf,latV,Rl,Dl,est,mp};}
+function buildG(c){
+  const o=G3;clear3(o);
+  o.group.add(new THREE.Mesh(new THREE.SphereGeometry(.995,64,40),new THREE.MeshBasicMaterial({color:0x0e1c3c})));
+  for(let la=-75;la<=75;la+=15)line3(o,arc(t=>gv(la,t),0,360,4),la===0?C.eq:0x3a4f82,la===0?.9:.55);
+  for(let lo=-180;lo<180;lo+=15)line3(o,arc(t=>gv(t,lo),-90,90,4),lo===0?C.mer:0x3a4f82,lo===0?.9:.55);
+  lab3(o,gv(0,-150),'Ecuador','#f3b94a','',10);lab3(o,gv(70,0),'Greenwich','#9fabff','',10);
+  lab3(o,gv(90,0),'N',CS.ink,'big',10);lab3(o,gv(-90,0),'S',CS.ink,'big',10);
+  const A=gv(c.a.lat,c.a.lon),B=gv(c.b.lat,c.b.lon);
+  line3(o,arc(t=>gv(t,c.a.lon),-90,90),C.mer,.8);line3(o,arc(t=>gv(t,c.b.lon),-90,90),C.mer,.8);
+  if(S.gmode!=='horas'){
+    // ortodrómica
+    const n=Math.max(8,Math.ceil(c.Do/60/2)),gc=[];for(let i=0;i<=n;i++)gc.push(slerp(A,B,i/n).multiplyScalar(1.003));
+    tube3(o,gc,C.eq,.008);
+    // círculo máximo completo, tenue
+    const nrm=A.clone().cross(B).normalize(),u=A.clone(),w=nrm.clone().cross(u).normalize();
+    if(nrm.lengthSq()>.5)line3(o,arc(t=>u.clone().multiplyScalar(cos(t)).add(w.clone().multiplyScalar(sin(t))),0,360),C.eq,.35,true);
+    // loxodrómica
+    const lx=[],m=64,psiA=c.mp(c.a.lat),psiB=c.mp(c.b.lat);
+    for(let i=0;i<=m;i++){const t=i/m,la=c.a.lat+(c.b.lat-c.a.lat)*t;let lo;
+      if(Math.abs(psiB-psiA)<1e-9)lo=c.a.lon+c.dL*t;else lo=c.a.lon+c.dL*(c.mp(la)-psiA)/(psiB-psiA);lx.push(gv(la,lo).multiplyScalar(1.003));}
+    tube3(o,lx,C.hor,.0065);
+    lab3(o,slerp(A,B,.5),'Ortodrómica',CS.eq,'',14);lab3(o,lx[Math.round(m*.5)],'Loxodrómica',CS.hor,'',-14);}
+  dot3(o,A,C.tri,.028);lab3(o,A,'A',CS.tri,'big',16);dot3(o,B,C.tri,.028);lab3(o,B,'B',CS.tri,'big',16);
+  hand3(o,A.clone().multiplyScalar(1.003),'A');hand3(o,B.clone().multiplyScalar(1.003),'B');
+}
+/* Arrastre sobre el globo: A y B. En estima, mover B cambia el rumbo y la distancia. */
+function dragG(d,p,e){
+  if(!p)return;const sn=e&&e.shiftKey?1:60,rd=x=>Math.round(x*sn)/sn;
+  const la=cl(rd(asin(p.y)),-89.5,89.5),lo=rd(atan2(p.x,p.z));let msg;
+  if(d.id==='A'){S.ga_lat=la;S.ga_lon=lo;msg='A: '+latS(la)+' · '+lonS(lo);}
+  else if(S.gmode==='estima'){const mp=l=>Math.log(Math.tan(Math.PI/4+l*D/2))/D,dL=mod(lo-S.ga_lon+180,360)-180,dl=la-S.ga_lat,dpsi=mp(la)-mp(S.ga_lat),
+      q=Math.abs(dl)>1e-7?dl/dpsi:cos(S.ga_lat);
+    S.grv=Math.round(mod(atan2(dL,dpsi),360)*10)/10;S.gdist=Math.round(Math.hypot(dl,q*dL)*600)/10;msg='Rumbo '+f1(S.grv)+'° · distancia '+f1(S.gdist)+' millas';}
+  else{S.gb_lat=la;S.gb_lon=lo;msg='B: '+latS(la)+' · '+lonS(lo);}
+  G3.aimed=S.gmode+S.ga_lat+S.ga_lon;live('g-hint',msg);refresh();
+}
+function horasG(c){ // hora conocida en A -> UT -> horas en B
+  const d=new Date(S.gms),h=d.getUTCHours()+d.getUTCMinutes()/60+d.getUTCSeconds()/3600,day=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());
+  const zA=Math.round(c.a.lon/15),zB=Math.round(c.b.lon/15);
+  const ref=S.gofRef==='huso',oA=num(S.gofA),oB=num(S.gofB),ofA=isFinite(oA)?(ref?zA:0)+oA:null,ofB=isFinite(oB)?(ref?zB:0)+oB:null;
+  const off=S.gkind==='civil'?c.a.lon/15:S.gkind==='legal'?zA:S.gkind==='oficial'?(ofA==null?0:ofA):0;
+  const ut=day+(h-off)*3600000;
+  const at=(o)=>{const t=ut+o*3600000;return hms(utH(t))+' · '+fecha(t)};
+  return {zA,zB,ut,utS:at(0),civA:at(c.a.lon/15),legA:at(zA),civB:at(c.b.lon/15),legB:at(zB),off,ofA,ofB,ofiA:ofA==null?null:at(ofA),ofiB:ofB==null?null:at(ofB)};}
+function panelG(c){
+  const m=S.gmode,list=[];let h='';
+  $('g-bbox').hidden=m==='estima';$('g-ebox').hidden=m!=='estima';$('g-hbox').hidden=m!=='horas';
+  if(m==='orto'){
+    list.push(['Diferencia de longitud (ΔL)',dm(c.dL)+' '+(c.dL>=0?'E':'W'),CS.mer],['Distancia ortodrómica',f1(c.Do)+' millas',CS.eq],['Rumbo inicial',f1(c.Ri)+'° = '+cuadr(c.Ri),CS.eq],
+      ['Rumbo final',f1(c.Rf)+'°',CS.eq],['Latitud del vértice',dm(c.latV)+(c.a.lat+c.b.lat>=0?' N':' S'),CS.eq],
+      ['Rumbo loxodrómico',f1(c.Rl)+'°',CS.hor],['Distancia loxodrómica',f1(c.Dl)+' millas',CS.hor],['Ganancia de la ortodrómica',f1(c.Dl-c.Do)+' millas',CS.tri]);
+    const sa=sin(c.a.lat),ca=cos(c.a.lat),sb=sin(c.b.lat),cb=cos(c.b.lat),cdl=cos(c.dL),sdl=sin(Math.abs(c.dL));
+    h='<p class="fm">cos D = sen lA · sen lB + cos lA · cos lB · cos ΔL</p><p>cos D = '+f4(sa)+' · '+f4(sb)+' + '+f4(ca)+' · '+f4(cb)+' · '+f4(cdl)+' = '+f4(sa*sb+ca*cb*cdl)+'</p>'+
+      '<p class="r">D = '+dm(c.Do/60)+' = '+f1(c.Do)+' millas</p>'+
+      '<p class="fm">cotg Ri = (tan lB · cos lA − sen lA · cos ΔL) / sen ΔL</p><p>cotg Ri = '+(sdl>1e-6?f4((tan(c.b.lat)*ca-sa*cdl)/sdl):'∞')+'</p>'+
+      '<p class="r">Ri = '+cuadr(c.Ri)+' = '+f1(c.Ri)+'°</p><p class="fm">El rumbo cuadrantal se cuenta desde el Norte y hacia el lado (E u W) de ΔL.</p>';}
+  if(m==='estima'){const e=c.est;
+    list.push(['Diferencia de latitud (Δl)',dm(e.dl)+' '+(e.dl>=0?'N':'S'),CS.mer],['Apartamiento (A)',f1(Math.abs(e.ap))+' millas '+(e.ap>=0?'E':'W'),CS.hor],
+      ['Latitud media',latS(e.lm),CS.mer],['Diferencia de longitud (ΔL)',dm(c.dL)+' '+(c.dL>=0?'E':'W'),CS.mer],
+      ['Situación de llegada',latS(c.b.lat)+' · '+lonS(c.b.lon),CS.tri]);
+    h='<p class="fm">Δl = D · cos R</p><p>Δl = '+f1(e.dist)+' · '+f4(cos(e.R))+' = '+f1(e.dl*60)+'′</p>'+
+      '<p class="fm">A = D · sen R</p><p>A = '+f1(e.dist)+' · '+f4(sin(e.R))+' = '+f1(e.ap)+' millas</p>'+
+      '<p class="fm">ΔL = A / cos lm</p><p>ΔL = '+f1(e.ap)+' / '+f4(cos(e.lm))+' = '+f1(e.dLm*60)+'′</p>'+
+      '<p class="r">l = '+latS(c.b.lat)+' · L = '+lonS(c.b.lon)+'</p><p class="fm">En distancias largas la longitud se afina con latitudes aumentadas; aquí la diferencia con la latitud media es de '+f1(Math.abs(c.dL-e.dLm)*60)+'′.</p>';}
+  if(m==='horas'){const t=horasG(c),sg=z=>(z>=0?'+':'−')+Math.abs(z);
+    list.push(['Diferencia de longitud',dm(c.dL)+' '+(c.dL>=0?'E':'W')+' = '+dur(Math.abs(c.dL)/15),CS.mer],['Zona de A / zona de B',sg(t.zA)+' / '+sg(t.zB),CS.mer],
+      ['UT (HcG)',t.utS,CS.eq],['Hora civil del lugar en A',t.civA,CS.hor],['Hora legal en A',t.legA,CS.hor],
+      ['Hora civil del lugar en B',t.civB,CS.tri],['Hora legal en B',t.legB,CS.tri]);
+    if(t.ofiA)list.splice(5,0,['Hora oficial en A',t.ofiA,CS.hor]);if(t.ofiB)list.push(['Hora oficial en B',t.ofiB,CS.tri]);
+    h='<p class="fm">UT = hora civil del lugar − longitud en tiempo (E resta, W suma)</p><p class="fm">UT = hora legal − zona (zona = longitud / 15, redondeada)</p>'+
+      '<p>Longitud de A en tiempo: '+dur(Math.abs(c.a.lon)/15)+' '+(c.a.lon>=0?'E':'W')+' · zona '+sg(t.zA)+'</p><p class="r">UT = '+t.utS+'</p>'+
+      '<p>Longitud de B en tiempo: '+dur(Math.abs(c.b.lon)/15)+' '+(c.b.lon>=0?'E':'W')+' · zona '+sg(t.zB)+'</p>'+
+      '<p class="r">En B: HcL = '+t.civB+'</p><p class="r">En B: hora legal = '+t.legB+'</p>'+
+      '<p class="fm">Hora oficial = '+(S.gofRef==='huso'?'hora legal':'UT')+' + adelanto del país; al revés, UT = hora oficial − adelanto'+(S.gofRef==='huso'?' − zona':'')+'</p>'+
+      (S.gkind==='oficial'&&t.ofA==null?'<p class="w">Escribe el adelanto oficial en A para poder pasar su hora oficial a UT.</p>':'')+
+      (t.ofiA?'<p>En A: adelanto total sobre UT '+sg(t.ofA)+' h → hora oficial = '+t.ofiA+'</p>':'')+
+      (t.ofiB?'<p class="r">En B: hora oficial = '+t.ofiB+'</p>':'<p class="fm">Escribe el adelanto de B si te piden su hora oficial.</p>');}
+  rows($('g-res'),list);$('g-calc').innerHTML=h;
+}
+
+/* =====================================================================
+   RECTAS DE ALTURA
+   ===================================================================== */
+function parseHz(s){s=String(s||'').trim();if(!s)return NaN;const p=s.replace(/[hms]/g,':').split(/[:\s]+/).filter(Boolean).map(Number);if(p.some(isNaN))return NaN;return p[0]+(p[1]||0)/60+(p[2]||0)/3600;}
+function calcR(){
+  const ds=S.dets.map(d=>({n:d.n||'',z:num(d.z),da:num(d.da),t:parseHz(d.hz)})).filter(d=>isFinite(d.z)&&isFinite(d.da));
+  const ts=ds.map(d=>d.t).filter(isFinite),tref=ts.length===ds.length&&ds.length?Math.max(...ts):NaN;
+  ds.forEach(d=>{let run=0;if(isFinite(tref)&&isFinite(S.rvb)&&isFinite(S.rrv)){let dt=tref-d.t;if(dt<0)dt+=24;run=S.rvb*dt;}
+    d.run=run;d.tx=run*sin(S.rrv);d.ty=run*cos(S.rrv);d.nx=sin(d.z);d.ny=cos(d.z);d.c=d.da+d.nx*d.tx+d.ny*d.ty;});
+  let so=null;
+  if(ds.length>=2){let a=0,b=0,cc=0,e=0,f=0;ds.forEach(d=>{a+=d.nx*d.nx;b+=d.nx*d.ny;cc+=d.ny*d.ny;e+=d.nx*d.c;f+=d.ny*d.c});
+    const det=a*cc-b*b;if(Math.abs(det)>1e-6){const x=(e*cc-b*f)/det,y=(a*f-b*e)/det;
+      so={x,y,dl:y/60,dL:x/60/cos(S.r_lat)};so.lat=S.r_lat+so.dl;so.lon=mod(S.r_lon+so.dL+180,360)-180;}}
+  const run=ds.length?Math.max(...ds.map(d=>d.run)):0;
+  return {ds,so,tref,run};}
+function drawR(c){
+  const cv=$('r-cv'),view=$('r-view'),w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  let ext=4;c.ds.forEach(d=>{ext=Math.max(ext,Math.abs(d.da)+3,Math.hypot(d.tx,d.ty)+Math.abs(d.da)+2)});if(c.so)ext=Math.max(ext,Math.hypot(c.so.x,c.so.y)+2);
+  const sc=Math.min(w,h)/2/(ext*1.12),ox=w/2,oy=h/2,X=x=>ox+x*sc,Y=y=>oy-y*sc;
+  const step=[1,2,5,10,20,50,100].find(s=>s*sc>=34)||200;
+  g.lineWidth=1;g.font='11px "IBM Plex Mono",monospace';g.fillStyle=CS.mute;g.textAlign='left';
+  for(let v=-Math.ceil(ext*1.6/step)*step;v<=ext*1.6;v+=step){g.strokeStyle=v===0?'rgba(159,171,255,.55)':'rgba(120,140,190,.16)';
+    g.beginPath();g.moveTo(X(v),0);g.lineTo(X(v),h);g.stroke();g.beginPath();g.moveTo(0,Y(v));g.lineTo(w,Y(v));g.stroke();
+    if(v>0)g.fillText(v+'′',X(v)+3,oy+13);}
+  g.fillText('Norte ↑',ox+5,14);g.fillText('1 cuadro = '+step+' millas',10,h-10);
+  const colors=[CS.eq,CS.hor,CS.mer];
+  c.ds.forEach((d,i)=>{const col=colors[i%3];
+    // azimut desde Se (trasladada)
+    g.strokeStyle=col;g.globalAlpha=.55;g.setLineDash([4,4]);g.beginPath();g.moveTo(X(d.tx),Y(d.ty));g.lineTo(X(d.tx+d.nx*d.da),Y(d.ty+d.ny*d.da));g.stroke();
+    if(d.run>0){g.strokeStyle=CS.mute;g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(d.tx),Y(d.ty));g.stroke();}
+    g.setLineDash([]);g.globalAlpha=1;
+    const px=d.tx+d.nx*d.da,py=d.ty+d.ny*d.da,L=ext*3;
+    g.strokeStyle=col;g.lineWidth=2.2;g.beginPath();g.moveTo(X(px-d.ny*L),Y(py+d.nx*L));g.lineTo(X(px+d.ny*L),Y(py-d.nx*L));g.stroke();g.lineWidth=1;
+    g.fillStyle=col;g.beginPath();g.arc(X(px),Y(py),3.5,0,7);g.fill();
+    g.font='600 12px "IBM Plex Sans",sans-serif';const tx=d.n||'Recta '+(i+1),tw=g.measureText(tx).width;
+    g.fillText(tx,X(px)+8+tw>w-6?X(px)-8-tw:X(px)+8,Y(py)-8);
+    if(d.run>0){g.fillStyle=CS.mute;g.beginPath();g.arc(X(d.tx),Y(d.ty),3,0,7);g.fill();}});
+  g.fillStyle=CS.ink;g.beginPath();g.arc(ox,oy,4.5,0,7);g.fill();g.font='600 12px "IBM Plex Sans",sans-serif';g.fillText('Se',ox+8,oy+16);
+  if(c.so){g.strokeStyle=CS.tri;g.lineWidth=2;g.beginPath();g.arc(X(c.so.x),Y(c.so.y),7,0,7);g.stroke();g.fillStyle=CS.tri;g.beginPath();g.arc(X(c.so.x),Y(c.so.y),3,0,7);g.fill();
+    g.fillText('So',X(c.so.x)+11,Y(c.so.y)+4);}
+}
+function panelR(c){
+  const list=[];let h='';
+  if(c.run>0)list.push(['Distancia navegada entre observaciones',f1(c.run)+' millas al '+f1(S.rrv)+'°',CS.mute]);
+  if(c.so){list.push(['Diferencia de latitud (Δl)',f1(Math.abs(c.so.y))+'′ '+(c.so.y>=0?'N':'S'),CS.mer],['Apartamiento (A)',f1(Math.abs(c.so.x))+'′ '+(c.so.x>=0?'E':'W'),CS.hor],
+      ['Diferencia de longitud (ΔL)',f1(Math.abs(c.so.dL*60))+'′ '+(c.so.x>=0?'E':'W'),CS.mer],['Situación observada',latS(c.so.lat)+' · '+lonS(c.so.lon),CS.tri]);
+    h='<p class="fm">Cada recta es perpendicular a su azimut y pasa a Δa millas de la situación de estima.</p>'+
+      (c.run>0?'<p class="fm">La primera recta se traslada por el rumbo y la distancia navegada hasta la hora de la última.</p>':'')+
+      '<p class="fm">Del gráfico: Δl y apartamiento. ΔL = A / cos l</p><p>ΔL = '+f1(Math.abs(c.so.x))+' / '+f4(cos(S.r_lat))+' = '+f1(Math.abs(c.so.dL*60))+'′</p>'+
+      '<p class="r">So: l = '+latS(c.so.lat)+'</p><p class="r">L = '+lonS(c.so.lon)+'</p>'+(c.ds.length>2?'<p class="fm">Con tres rectas se toma el punto que mejor ajusta al triángulo que forman.</p>':'');}
+  else h='<p class="w">'+(c.ds.length<2?'Hacen falta al menos dos determinantes (Z y Δa) para obtener la situación.':'Las rectas son paralelas: no hay corte.')+'</p>';
+  rows($('r-res'),list);$('r-calc').innerHTML=h;
+}
+function detsUI(){const tb=$('r-dets');tb.innerHTML=S.dets.map((d,i)=>'<tr><td class="nr">'+(i+1)+'</td>'+['n','hz','z','da'].map(k=>'<td><input id="rd-'+i+'-'+k+'" data-i="'+i+'" data-k="'+k+'" type="text" '+(k==='n'?'':'inputmode="decimal" ')+
+  'aria-label="'+({n:'Astro',hz:'Hora',z:'Azimut',da:'Diferencia de alturas'})[k]+' de la recta '+(i+1)+'" placeholder="'+({n:'A'+(i+1),hz:'hh:mm:ss',z:'°',da:'±′'})[k]+'"></td>').join('')+'</tr>').join('');
+  tb.querySelectorAll('input').forEach(el=>{el.value=S.dets[+el.dataset.i][el.dataset.k];el.addEventListener('input',()=>{S.dets[+el.dataset.i][el.dataset.k]=el.value;refresh()})});}
+
+/* =====================================================================
+   SEXTANTE
+   ===================================================================== */
+function calcX(){
+  const ai=S.x_ai,ci=S.xci||0,e=Math.max(0,S.xe||0),ao=ai+ci/60,dep=1.776*Math.sqrt(e),aa=ao-dep/60;
+  const ref=aa>-1?1/Math.tan((aa+7.31/(aa+4.4))*D):0;const s=sun(S.xms);
+  const sol=S.xastro!=='st',sd=sol?s.sd:0,par=sol?0.15*cos(aa):0;
+  const av=aa-ref/60+par/60+(S.xastro==='li'?sd:S.xastro==='ls'?-sd:0)/60;
+  return {ai,ci,e,ao,dep,aa,ref,sd,par,av,sol};}
+function panelX(c){
+  const sg=v=>(v>=0?'+':'−')+f1(Math.abs(v))+'′';
+  rows($('x-res'),[['Altura observada (ai + Ci)',dm(c.ao),CS.mute],['Depresión del horizonte',sg(-c.dep),CS.hor],['Altura aparente',dm(c.aa),CS.mute],
+    ['Refracción',sg(-c.ref),CS.mer]].concat(c.sol?[['Semidiámetro',sg(S.xastro==='li'?c.sd:-c.sd),CS.eq],['Paralaje',sg(c.par),CS.eq]]:[]).concat([['Altura verdadera',dm(c.av),CS.tri]]));
+  $('x-calc').innerHTML='<p class="fm">Altura observada = altura instrumental + corrección de índice</p><p>ao = '+dm(c.ai)+' '+sg(c.ci)+' = '+dm(c.ao)+'</p>'+
+    '<p class="fm">Depresión = 1,776′ · √elevación (siempre resta)</p><p>Dp = 1,776 · √'+f1(c.e)+' = '+f1(c.dep)+'′ → altura aparente = '+dm(c.aa)+'</p>'+
+    '<p class="fm">Refracción (siempre resta; mayor cuanto más bajo está el astro)</p><p>R = '+f1(c.ref)+'′</p>'+
+    (c.sol?'<p class="fm">Semidiámetro: suma con el limbo inferior, resta con el superior. Paralaje: suma.</p><p>SD = '+f1(c.sd)+'′ · paralaje = '+f1(c.par)+'′</p>':'<p class="fm">Estrellas y planetas: sin semidiámetro ni paralaje apreciables.</p>')+
+    '<p class="r">Altura verdadera = '+dm(c.av)+'</p>';
+  const der=S.xder,izq=S.xizq;let t='';
+  if(isFinite(der)&&isFinite(izq)){const ei=((60-izq)-der)/2,sd=((60-izq)+der)/4;
+    t='<p class="fm">Lectura a la izquierda real = 60′ − lectura del tambor</p><p>60 − '+f1(izq)+' = '+f1(60-izq)+'′</p><p class="fm">Error de índice = (izquierda − derecha) / 2</p>'+
+      '<p class="r">Ei = '+f1(Math.abs(ei))+'′ '+(ei>=0?'(+)':'(−)')+'</p><p class="fm">Comprobación: (izquierda + derecha) / 4 debe ser el semidiámetro del Sol ('+f1(sun(S.xms).sd)+'′ ese día)</p><p>'+f1(sd)+'′</p>';}
+  $('x-ei').innerHTML=t;
+}
+function drawX(c){
+  const cv=$('x-cv'),view=$('x-view'),w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const top=$('x-cap').parentNode.offsetHeight+18,hh=h-top,ex=w*.14,ey=top+hh*.74,sea=top+hh*.86,R=Math.min(w*.78,hh*.70),ancho=R>=300;
+  // mar
+  const gr=g.createLinearGradient(0,sea,0,h);gr.addColorStop(0,'rgba(72,214,194,.22)');gr.addColorStop(1,'rgba(72,214,194,.03)');g.fillStyle=gr;g.fillRect(0,sea,w,h-sea);
+  g.strokeStyle=CS.hor;g.lineWidth=1.5;g.beginPath();g.moveTo(0,sea);g.lineTo(w,sea);g.stroke();
+  // observador
+  g.strokeStyle=CS.ink;g.lineWidth=2;g.beginPath();g.moveTo(ex,sea);g.lineTo(ex,ey);g.stroke();g.fillStyle=CS.ink;g.beginPath();g.arc(ex,ey,4,0,7);g.fill();
+  g.font='600 12px "IBM Plex Sans",sans-serif';g.fillStyle=CS.ink;g.textAlign='left';g.fillText('Ojo · elevación '+f1(c.e)+' m',Math.max(8,ex-20),sea+18);
+  const ray=(deg,col,dash,len)=>{const a=deg*D,x=ex+Math.cos(a)*(len||R),y=ey-Math.sin(a)*(len||R);g.strokeStyle=col;g.setLineDash(dash||[]);g.lineWidth=1.4;g.beginPath();g.moveTo(ex,ey);g.lineTo(x,y);g.stroke();g.setLineDash([]);return [x,y]};
+  const depA=cl(c.dep/60*14,1.5,9);                       // la depresión se exagera para que se vea
+  const hs=ray(0,CS.mute,[5,5]);g.textAlign='right';g.fillStyle=CS.mute;if(ancho)g.fillText('Horizontal del ojo',hs[0],hs[1]-6);
+  const hvz=ray(-depA,CS.hor,null,R*.98);g.fillStyle=CS.hor;if(ancho)g.fillText('Horizonte de la mar',hvz[0],hvz[1]+15);g.textAlign='left';
+  const alt=cl(c.av,3,84),sdA=c.sol?3.2:0,cen=alt,low=cen-sdA,up=cen+sdA;
+  const sx=ex+Math.cos(cen*D)*R,sy=ey-Math.sin(cen*D)*R;
+  if(c.sol){const rr=Math.sin(sdA*D)*R;const sg2=g.createRadialGradient(sx,sy,rr*.2,sx,sy,rr);sg2.addColorStop(0,'#fff4cf');sg2.addColorStop(1,'#f3b94a');g.fillStyle=sg2;g.beginPath();g.arc(sx,sy,rr,0,7);g.fill();}
+  else{g.fillStyle=CS.star;g.beginPath();g.arc(sx,sy,4,0,7);g.fill();}
+  const obs=S.xastro==='ls'?up:S.xastro==='li'?low:cen;
+  ray(obs,CS.eq);ray(cen,CS.tri,[2,4]);
+  const arcA=(a0,a1,rad,col,txt)=>{g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.arc(ex,ey,rad,-a1*D,-a0*D);g.stroke();const am=(a0+a1)/2*D;g.fillStyle=col;g.fillText(txt,ex+Math.cos(am)*(rad+8),ey-Math.sin(am)*(rad+8)+4)};
+  arcA(-depA,obs,R*.26,CS.eq,'ai');arcA(-depA,0,R*.56,CS.hor,'Dp');arcA(0,cen,R*.41,CS.tri,'av');
+  $('x-cap').textContent=c.sol?'Se observa el limbo '+(S.xastro==='li'?'inferior':'superior')+'; la altura verdadera es la del centro del Sol.':'En una estrella se observa directamente su centro.';
+}
+
+/* =====================================================================
+   AGUJA: corrección total con declinación magnética y desvío
+   ===================================================================== */
+const sAng=v=>{v=String(v==null?'':v).trim().replace('−','-');if(!v)return NaN;const a=parseAng(v.replace(/^[+-]/,''));return v[0]==='-'?-a:a};
+function calcC(){
+  const dm0=S.c_dm,n=isFinite(S.c_y1)&&isFinite(S.c_y0)?S.c_y1-S.c_y0:0,va=(isFinite(S.c_va)?S.c_va:0)/60,s0=dm0>=0?1:-1;
+  const per=S.c_vk==='E'?va:S.c_vk==='W'?-va:S.c_vk==='mas'?s0*va:-s0*va;      // variación anual con signo (E +)
+  const dmN=dm0+n*per,des=sAng(S.c_des),d0=isFinite(des)?des:0,ct=dmN+d0,ra=sAng(S.c_ra),da=sAng(S.c_da);
+  return {dm0,n,per,dmN,des,d0,ct,ra,da,rv:isFinite(ra)?mod(ra+ct,360):null,rm:isFinite(ra)?mod(ra+d0,360):null,dv:isFinite(da)?mod(da+ct,360):null};}
+function panelC(c){
+  const s=v=>dm(Math.abs(v))+' '+(v>=0?'NE (+)':'NW (−)'),sg=v=>(v>=0?'+ ':'− ')+dm(Math.abs(v)),list=[];
+  if(c.n&&c.per)list.push(['Variación acumulada en '+c.n+' años',dm(Math.abs(c.n*c.per))+(c.n*c.per>=0?' hacia el E':' hacia el W'),CS.mer]);
+  list.push(['Declinación magnética actual (dm)',s(c.dmN),CS.mer],['Desvío (Δ)',isFinite(c.des)?s(c.des):'—',CS.eq],
+    ['Corrección total (Ct)',s(c.ct)+' = '+(c.ct>=0?'+':'−')+f1(Math.abs(c.ct))+'°',CS.tri]);
+  if(c.rv!=null)list.push(['Rumbo magnético (Rm)',f1(c.rm)+'°',CS.mer],['Rumbo verdadero (Rv)',f1(c.rv)+'°',CS.hor]);
+  if(c.dv!=null)list.push(['Demora verdadera (Dv)',f1(c.dv)+'°',CS.star]);
+  rows($('c-res'),list);
+  let h='';
+  if(c.n&&c.per)h+='<p class="fm">dm actual = dm de la carta + años · variación anual (hacia el E suma, hacia el W resta)</p><p>dm = '+sdm(c.dm0)+' '+sg(c.n*c.per)+'   ('+c.n+' · '+f1(Math.abs(c.per*60))+'′)</p><p class="r">dm = '+s(c.dmN)+'</p>';
+  h+='<p class="fm">Ct = dm + Δ, cada una con su signo (NE +, NW −)</p><p>Ct = '+sdm(c.dmN)+' '+sg(c.d0)+'</p><p class="r">Ct = '+s(c.ct)+'</p>';
+  if(!isFinite(c.des))h+='<p class="w">Escribe el desvío; sin él, la Ct es solo la declinación magnética.</p>';
+  if(c.rv!=null)h+='<p class="fm">Rv = Ra + Ct</p><p>Rv = '+f1(c.ra)+'° '+(c.ct>=0?'+ ':'− ')+f1(Math.abs(c.ct))+'°</p><p class="r">Rv = '+f1(c.rv)+'°</p>';
+  if(c.dv!=null)h+='<p class="fm">Dv = Da + Ct</p><p>Dv = '+f1(c.da)+'° '+(c.ct>=0?'+ ':'− ')+f1(Math.abs(c.ct))+'°</p><p class="r">Dv = '+f1(c.dv)+'°</p>';
+  $('c-calc').innerHTML=h;
+}
+function drawC(c){
+  const cv=$('c-cv'),view=$('c-view'),w=view.clientWidth,h=view.clientHeight;if(!w||!h)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=w*dpr;cv.height=h*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);g.clearRect(0,0,w,h);
+  const top=$('c-cap').parentNode.offsetHeight+16,cx=w/2,cy=top+(h-top)/2,R=Math.max(40,Math.min(w,h-top)/2-40);
+  const mx=Math.max(Math.abs(c.dmN),Math.abs(c.ct),Math.abs(c.d0)),k=mx>0&&mx<=12?3:1;      // los ángulos pequeños se exageran
+  const P=(deg,r)=>[cx+Math.sin(deg*D)*r,cy-Math.cos(deg*D)*r];
+  g.textAlign='center';g.textBaseline='middle';
+  g.strokeStyle='rgba(132,148,182,.55)';g.lineWidth=1;g.beginPath();g.arc(cx,cy,R,0,7);g.stroke();
+  for(let a=0;a<360;a+=10){const p=P(a,R),q=P(a,R-(a%90===0?12:a%30===0?8:4));g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke();}
+  g.font='500 11px "IBM Plex Mono",monospace';g.fillStyle=CS.mute;[['E',90],['S',180],['W',270]].forEach(t=>{const p=P(t[1],R+13);g.fillText(t[0],p[0],p[1])});
+  const tx=(t,x,y,col,f)=>{g.font=f||'600 12px "IBM Plex Sans",sans-serif';const tw=g.measureText(t).width/2+4;g.fillStyle=col;g.fillText(t,cl(x,tw,w-tw),cl(y,top+8,h-10));};
+  const north=(deg,col,lab,len)=>{const p=P(deg,len);g.strokeStyle=col;g.lineWidth=2;g.beginPath();g.moveTo(cx,cy);g.lineTo(p[0],p[1]);g.stroke();const q=P(deg,len+13);tx(lab,q[0],q[1],col,'600 13px "IBM Plex Sans",sans-serif');};
+  const arcN=(a0,a1,rad,col,t)=>{if(Math.abs(a1-a0)<.05)return;g.strokeStyle=col;g.lineWidth=2.5;g.beginPath();g.arc(cx,cy,rad,(Math.min(a0,a1)-90)*D,(Math.max(a0,a1)-90)*D);g.stroke();
+    const p=P((a0+a1)/2,rad+11);tx(t,p[0],p[1],col);};
+  const aM=c.dmN*k,aA=c.ct*k;
+  if(c.rv!=null){const p=P(c.rv,R*.96),q=P(c.rv,R+30);g.strokeStyle=CS.hor;g.lineWidth=3;g.beginPath();g.moveTo(cx,cy);g.lineTo(p[0],p[1]);g.stroke();
+    g.fillStyle=CS.hor;g.beginPath();g.arc(p[0],p[1],4.5,0,7);g.fill();tx('Proa · Rv '+f1(c.rv)+'°',q[0],q[1],CS.hor);}
+  if(c.dv!=null){const p=P(c.dv,R*.96),q=P(c.dv,R+30);g.strokeStyle=CS.star;g.lineWidth=1.6;g.setLineDash([6,5]);g.beginPath();g.moveTo(cx,cy);g.lineTo(p[0],p[1]);g.stroke();g.setLineDash([]);
+    tx('Demora · Dv '+f1(c.dv)+'°',q[0],q[1],CS.star);}
+  north(0,CS.ink,'Nv',R*.92);north(aM,CS.mer,'Nm',R*.78);north(aA,CS.eq,'Na',R*.64);
+  arcN(0,aA,R*.26,CS.tri,'Ct');arcN(0,aM,R*.40,CS.mer,'dm');if(isFinite(c.des))arcN(aM,aA,R*.52,CS.eq,'Δ');
+  g.fillStyle=CS.ink;g.beginPath();g.arc(cx,cy,3.5,0,7);g.fill();
+  $('c-cap').textContent=(c.ct>=0?'Ct al NE: el norte de aguja queda a la derecha del verdadero; lo verdadero es mayor que lo de aguja.':'Ct al NW: el norte de aguja queda a la izquierda del verdadero; lo verdadero es menor que lo de aguja.')+
+    (k>1?' Los ángulos entre los tres nortes están dibujados al triple para que se distingan.':'');
+}
+
+/* =====================================================================
+   Refresco general, pestañas y eventos
+   ===================================================================== */
+let dirty=true;const refresh=()=>{dirty=true};
+function syncInputs(){
+  syncAngs();
+  const off=tOff(),d=new Date(Math.round((S.ms+off*3600000)/1000)*1000);if(document.activeElement!==$('e-date'))$('e-date').value=d.toISOString().slice(0,10);
+  $('e-tk').value=S.tk;$('e-tof-box').hidden=S.tk!=='oficial';if(document.activeElement!==$('e-tof'))$('e-tof').value=isFinite(S.tof)?String(S.tof).replace('.',','):'';
+  $('e-hora-l').textContent={ut:'Hora UT',legal:'Hora legal',civil:'Hora civil',oficial:'Hora oficial'}[S.tk];
+  {const n=$('e-tnote'),z=Math.round(S.lon/15),ut=hms(utH(S.ms))+' UT del '+fecha(S.ms),pm=v=>v>0?'−':'+';n.hidden=S.tk==='ut';
+   n.textContent=S.tk==='legal'?(z?'Huso '+(z>0?'+':'−')+Math.abs(z)+': UT = Hz '+pm(z)+' '+Math.abs(z)+' h = ':'Huso 0: UT = Hz = ')+ut
+    :S.tk==='civil'?'Longitud en tiempo '+dur(Math.abs(S.lon/15))+(S.lon<0?' W':' E')+': UT = HcL '+pm(S.lon)+' LT = '+ut
+    :S.tk==='oficial'?'UT = Ho '+pm(off)+' '+String(Math.abs(off)).replace('.',',')+' h = '+ut:'';}
+  if(document.activeElement!==$('e-hora'))$('e-hora').value=d.toISOString().slice(11,19);
+  selA.value=S.astro;$('e-mode').value=S.mode;$('e-mhk').value=S.mhk;
+  const man=S.astro==='man';$('e-man1').hidden=$('e-man2').hidden=!man;$('e-time').hidden=man;
+  LAY.forEach(l=>{$('ly-'+l[0]).checked=!!S.lay[l[0]]});
+  $('e-play').textContent=S.play?'❚❚ Parar':'▶ Girar el cielo';
+  const gd=new Date(S.gms);if(document.activeElement!==$('g-date'))$('g-date').value=gd.toISOString().slice(0,10);
+  if(document.activeElement!==$('g-hora'))$('g-hora').value=gd.toISOString().slice(11,19);
+  $('g-mode').value=S.gmode;$('g-kind').value=S.gkind;
+  const sv=(id,v)=>{const el=$(id);if(document.activeElement!==el)el.value=isFinite(v)?v:''};
+  sv('g-rv',S.grv);sv('g-dist',S.gdist);sv('r-rv',S.rrv);sv('r-vb',S.rvb);sv('x-ci',S.xci);sv('x-e',S.xe);sv('x-der',S.xder);sv('x-izq',S.xizq);sv('c-y0',S.c_y0);sv('c-y1',S.c_y1);sv('c-va',S.c_va);
+  [['c-des','c_des'],['c-ra','c_ra'],['c-da','c_da'],['g-ofa','gofA'],['g-ofb','gofB']].forEach(q=>{const el=$(q[0]);if(document.activeElement!==el)el.value=S[q[1]]});
+  $('c-vk').value=S.c_vk;$('g-ofref').value=S.gofRef;$('e-tofref').value=S.tofRef;
+  $('x-astro').value=S.xastro;if(document.activeElement!==$('x-date'))$('x-date').value=new Date(S.xms).toISOString().slice(0,10);
+}
+let lastMode=null;
+function update(){
+  syncInputs();
+  if(S.tab==='esfera'){if(!E3){E3=mk3($('e-view'),4.7);E3.onDrag=dragE;E3.onDragEnd=()=>{const el=$('e-hint');el.textContent=HINT.e;el.classList.remove('live')};E3.camera.position.set(-2.4,1.9,3.6);E3.fit();E3.camera.position.setLength(4.7/Math.min(1,E3.camera.aspect*.95));}
+    if(lastMode!==S.mode){extraE();lastMode=S.mode}
+    const c=calcE();buildE(c);panelE(c);}
+  if(S.tab==='globo'){if(!G3){G3=mk3($('g-view'),4.5);G3.opaque=true;G3.onDrag=dragG;G3.onDragEnd=()=>{const el=$('g-hint');el.textContent=HINT.g;el.classList.remove('live')};G3.camera.position.set(0,1,4.5);G3.fit();G3.camera.position.setLength(4.5/Math.min(1,G3.camera.aspect*.95));}
+    const c=calcG();
+    if(!G3.aimed||G3.aimed!==S.gmode+S.ga_lat+S.ga_lon){const mid=slerp(gv(c.a.lat,c.a.lon),gv(c.b.lat,c.b.lon),.5);if(mid.lengthSq()<.01)mid.copy(gv(c.a.lat,c.a.lon));
+      const len=G3.camera.position.length()||4.5;G3.camera.position.copy(mid.normalize().multiplyScalar(len));G3.camera.position.y+=.6;G3.camera.position.setLength(len);G3.aimed=S.gmode+S.ga_lat+S.ga_lon;}
+    buildG(c);panelG(c);}
+  if(S.tab==='rectas'){const c=calcR();drawR(c);panelR(c);}
+  if(S.tab==='sextante'){const c=calcX();drawX(c);panelX(c);}
+  if(S.tab==='aguja'){const c=calcC();drawC(c);panelC(c);}
+}
+function go2(t){if(!['esfera','globo','rectas','sextante','aguja'].includes(t))t='esfera';S.tab=t;
+  document.querySelectorAll('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t);
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  if(t==='rectas')detsUI();
+  try{if(location.hash.slice(1)!==t)history.replaceState(null,'','#'+t)}catch(_){}
+  refresh();}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>go2(b.dataset.tab)));
+/* El enlace puede traer la pestaña y el ejercicio: #esfera/polar, #globo/horas, #rectas... */
+function goHash(){const p=location.hash.slice(1).split('/'),t=p[0]||'esfera',m=p[1];
+  if(m){if(t==='esfera'&&PRE[m])setMode(m);if(t==='globo'&&['orto','estima','horas'].includes(m))S.gmode=m;}
+  go2(t);}
+window.addEventListener('hashchange',goHash);
+
+$('e-mode').addEventListener('change',e=>{if(e.target.value==='ir-rectas'){e.target.value=S.mode;go2('rectas');return}setMode(e.target.value);refresh()});
+selA.addEventListener('change',e=>{S.astro=e.target.value;refresh()});
+$('e-mhk').addEventListener('change',e=>{S.mhk=e.target.value;refresh()});
+const setDT=(key,dateId,horaId)=>{const d=$(dateId).value,t=$(horaId)?$(horaId).value:'00:00:00';if(!d)return;const p=d.split('-').map(Number),q=(t||'0:0:0').split(':').map(Number);
+  const ms=Date.UTC(p[0],p[1]-1,p[2],q[0]||0,q[1]||0,q[2]||0);if(isFinite(ms)){S[key]=ms-(key==='ms'?tOff()*3600000:0);refresh()}};
+$('e-date').addEventListener('input',()=>setDT('ms','e-date','e-hora'));$('e-hora').addEventListener('input',()=>setDT('ms','e-date','e-hora'));
+$('g-date').addEventListener('input',()=>setDT('gms','g-date','g-hora'));$('g-hora').addEventListener('input',()=>setDT('gms','g-date','g-hora'));
+$('x-date').addEventListener('input',()=>setDT('xms','x-date'));
+$('e-play').addEventListener('click',()=>{S.play=!S.play;refresh()});
+$('r-clear').addEventListener('click',()=>{S.dets.forEach(d=>{d.n=d.hz=d.z=d.da=''});detsUI();refresh()});
+$('e-tk').addEventListener('change',e=>{keepWall(()=>{S.tk=e.target.value});refresh()});
+$('e-tof').addEventListener('input',e=>{keepWall(()=>{S.tof=num(e.target.value)});refresh()});
+$('g-mode').addEventListener('change',e=>{S.gmode=e.target.value;refresh()});
+$('g-kind').addEventListener('change',e=>{S.gkind=e.target.value;refresh()});
+$('x-astro').addEventListener('change',e=>{S.xastro=e.target.value;refresh()});
+[['g-rv','grv'],['g-dist','gdist'],['r-rv','rrv'],['r-vb','rvb'],['x-ci','xci'],['x-e','xe'],['x-der','xder'],['x-izq','xizq'],['c-y0','c_y0'],['c-y1','c_y1'],['c-va','c_va']].forEach(p=>
+  $(p[0]).addEventListener('input',e=>{S[p[1]]=num(e.target.value);refresh()}));
+new ResizeObserver(refresh).observe($('r-view'));new ResizeObserver(refresh).observe($('x-view'));new ResizeObserver(refresh).observe($('c-view'));
+[['c-des','c_des'],['c-ra','c_ra'],['c-da','c_da'],['g-ofa','gofA'],['g-ofb','gofB']].forEach(q=>$(q[0]).addEventListener('input',e=>{S[q[1]]=e.target.value;refresh()}));
+$('c-vk').addEventListener('change',e=>{S.c_vk=e.target.value;refresh()});$('g-ofref').addEventListener('change',e=>{S.gofRef=e.target.value;refresh()});
+$('e-tofref').addEventListener('change',e=>{keepWall(()=>{S.tofRef=e.target.value});refresh()});
+
+let last=performance.now(),acc=0;
+function frame(now){const dt=Math.min(.1,(now-last)/1000);last=now;
+  if(S.play&&S.tab==='esfera'){const hrs=dt*(+$('e-speed').value);if(S.astro==='man')S.mhl=mod(S.mhl+hrs*15,360);else S.ms+=hrs*3600000;acc+=dt;if(acc>.04){acc=0;dirty=true}}
+  if(dirty){dirty=false;try{update()}catch(err){console.error(err)}}
+  const o=S.tab==='esfera'?E3:S.tab==='globo'?G3:null;
+  if(o){if(!o.drag&&o.q.w<1){if(2*Math.acos(Math.min(1,Math.abs(o.q.w)))>2e-3)o.q.slerp(QI,1-Math.exp(-dt*4));else o.q.identity();}
+    if(o.group)o.group.quaternion.copy(o.q);
+    o.controls.update();o.renderer.render(o.scene,o.camera);place3(o);}
+  requestAnimationFrame(frame);}
+
+window.simCY={S,calcE,resE,calcG,horasG,calcR,calcX,setMode,refresh,go2,get E3(){return E3},get G3(){return G3},calcC,crepE};   // para pruebas desde la consola
+setMode('coord');
+goHash();
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
