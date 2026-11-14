@@ -493,11 +493,11 @@ function slerp(a,b,t){const w=a.angleTo(b);if(w<1e-6)return a.clone();const s=Ma
    ESFERA CELESTE
    ===================================================================== */
 const LAY=[['hor','Horizonte y puntos cardinales',CS.hor],['zen','Cénit, nadir y vertical',CS.ink],['eje','Eje del mundo y polos',CS.eq],
- ['ecu','Ecuador celeste',CS.eq],['mer','Meridiano del lugar',CS.mer],['pv','Primer vertical',CS.hor],
+ ['ecu','Ecuador celeste',CS.eq],['mer','Meridiano del lugar',CS.mer],['gre','Meridiano de Greenwich (hG y longitud)','#c79bff'],['pv','Primer vertical',CS.hor],
  ['par','Paralelo del astro (arco diurno)',CS.eq],['ch','Círculo horario del astro',CS.eq],['ver','Vertical del astro',CS.hor],
  ['alm','Almicantarat',CS.hor],['arc','Arcos medidos (l, δ, hL, a, Z)',CS.ink],['tri','Triángulo de posición',CS.tri],
  ['oo','Puntos de orto y ocaso',CS.tri],['crep','Crepúsculos (Sol a −6°, −12° y −18°)','#9db9ff'],['ecl','Eclíptica, Aries y Libra',CS.star],['est','Estrellas y constelaciones',CS.star]];
-const PRE={coord:'hor zen eje ecu mer par ch ver arc tri',horario:'hor zen eje ecu mer ch arc',orto:'hor zen eje ecu mer par oo',crep:'hor zen eje ecu mer par oo crep',
+const PRE={coord:'hor zen eje ecu mer par ch ver arc tri',horario:'hor zen eje ecu mer gre ch arc',orto:'hor zen eje ecu mer par oo',crep:'hor zen eje ecu mer par oo crep',
  meridiana:'hor zen eje ecu mer par arc',polar:'hor zen eje mer ver arc est',recta:'hor zen eje ecu mer ch ver arc tri',
  libre:'hor zen eje ecu mer pv par ch ver alm arc ecl est'};
 const TIT={coord:['Altura y azimut','Con la latitud, la declinación y el horario se resuelve el triángulo de posición.'],
@@ -549,6 +549,11 @@ function buildE(c){
   if(L.eje){line3(o,[Pe,Pd],C.eq,.7,true);dot3(o,eqv(90,0),C.eq);lab3(o,eqv(90,0),'PN',CS.eq);
     dot3(o,eqv(-90,0),C.eq);lab3(o,eqv(-90,0),'PS',CS.eq);hand3(o,eqv(90,0),'pn');hand3(o,eqv(-90,0),'ps');}
   if(L.mer){line3(o,arc(t=>hv(t,0),0,180),C.mer,.95);line3(o,arc(t=>hv(-t,0),0,180),C.mer,.6,true);}
+  // Meridiano de Greenwich: su horario local es la longitud (hL = hG + L). Arcos de la longitud y del horario en Greenwich, por fuera del ecuador.
+  if(L.gre){const tg=c.lon,vio=0xc79bff;line3(o,arc(d=>eqv(d,tg),-90,90),vio,.95);line3(o,arc(d=>eqv(d,tg+180),-90,90),vio,.4,true);
+    dot3(o,eqv(0,tg),vio,.018);lab3(o,eqv(38,tg),'Greenwich','#c79bff','',12);
+    if(Math.abs(tg)>.3){tube3(o,arc(t=>eqv(0,t).multiplyScalar(1.035),0,tg),vio,.006);lab3(o,eqv(0,tg/2).multiplyScalar(1.035),'L','#c79bff','big',15);}
+    if(c.hG>.3){tube3(o,arc(t=>eqv(0,t).multiplyScalar(1.07),tg,tg+c.hG),C.star,.006);lab3(o,eqv(0,tg+c.hG/2).multiplyScalar(1.07),'hG',CS.star,'big',15);}}
   if(L.ecu){line3(o,arc(t=>eqv(0,t),0,360),C.eq,.95);dot3(o,eqv(0,0),C.eq,.016);lab3(o,eqv(0,0),'Q',CS.eq);dot3(o,eqv(0,180),C.eq,.016);lab3(o,eqv(0,180),'Q′',CS.eq);}
   if(L.pv)line3(o,arc(t=>new THREE.Vector3(cos(t),sin(t),0),0,360),C.hor,.55);
   if(L.par){let seg=[],up=null;const flush=()=>{if(seg.length>1)line3(o,seg,C.eq,up?.9:.5,!up);};
