@@ -576,20 +576,25 @@ h1 {
 
 .grupo-fuentes { margin-bottom: 14px; }
 
-/* ---- simulador de navegación (CY) ---- */
+/* ---- simuladores de navegación ---- */
 
-.acceso-simulador {
-  display: block;
-  margin: -12px 0 28px;
-  padding: 12px 14px;
-  border: 1px solid var(--gris-borde);
+.simuladores { margin-top: 44px; padding-top: 22px; border-top: 1px solid var(--gris-borde); }
+.ayuda-sim { margin: 0 0 12px; font-size: .9rem; color: #5c6b73; }
+.lista-sim { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.tarjeta-sim {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 14px;
+  background: var(--blanco);
+  border: 2px solid var(--gris-borde);
   border-radius: var(--radio);
-  background: var(--azul-claro);
   text-decoration: none;
   color: inherit;
+  transition: border-color .15s, background .15s;
 }
-.acceso-simulador:hover { border-color: var(--azul); }
-.acceso-titulo { display: block; font-weight: 600; color: var(--azul-marino); }
-.acceso-desc { display: block; font-size: .88rem; color: #5c6b73; margin-top: 2px; }
+.tarjeta-sim:hover, .tarjeta-sim:focus-visible { border-color: var(--azul); background: var(--azul-claro); }
+.tarjeta-sim .nombre { font-weight: 700; font-size: 1.05rem; color: var(--azul-marino); }
+.tarjeta-sim .desc { font-size: .82rem; color: #5c6b73; }
 .enlace-simulador { margin: 12px 0 0; font-size: .92rem; }
 .enlace-simulador a { color: var(--azul); font-weight: 600; }

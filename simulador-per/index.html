@@ -1,0 +1,887 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{box-sizing:border-box}body{margin:0;padding:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Mesa de cartas PER y PY</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: la carta ocupa la mesa (izquierda) y el cuaderno de cálculo va a la derecha; cuatro mesas de trabajo (pestañas).
+   Paleta de carta de papel: tierra ocre, mar casi blanco, luces y rosa en magenta. En oscuro, la paleta nocturna de una carta electrónica. */
+:root{
+  --bg:#eef1f3; --panel:#ffffff; --line:#d3d9df; --field:#f6f8fa; --ink:#18232d; --mute:#5d6b78;
+  --sea:#fbfdfe; --shoal:#dcebf3; --land:#ead8a6; --coast:#4b4232; --grid:#9fb0bf; --chartink:#26323c;
+  --mag:#b3127e;      /* luces, rosa y declinación, como en las cartas */
+  --lop1:#1b6fd1; --lop2:#0f8f6a; --lop3:#c2560c;   /* líneas de posición */
+  --fix:#d01f3c;      /* situación obtenida */
+  --est:#6b46c1;      /* estima y derrota */
+  --cur:#0b8aa0;      /* corriente */
+  --font-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --font-body:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+  --font-data:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0b1016; --panel:#121a23; --line:#26323f; --field:#17212c; --ink:#e3e9ef; --mute:#93a3b3;
+  --sea:#0d1822; --shoal:#13293a; --land:#3a3322; --coast:#b9a77a; --grid:#3d5266; --chartink:#c9d5df;
+  --mag:#e05cb7; --lop1:#5ea8ff; --lop2:#3fcf9d; --lop3:#ff9b55; --fix:#ff5c74; --est:#b49bff; --cur:#45c9df;
+  color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0b1016; --panel:#121a23; --line:#26323f; --field:#17212c; --ink:#e3e9ef; --mute:#93a3b3;
+  --sea:#0d1822; --shoal:#13293a; --land:#3a3322; --coast:#b9a77a; --grid:#3d5266; --chartink:#c9d5df;
+  --mag:#e05cb7; --lop1:#5ea8ff; --lop2:#3fcf9d; --lop3:#ff9b55; --fix:#ff5c74; --est:#b49bff; --cur:#45c9df;
+  color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:14px;line-height:1.45}
+.app{box-sizing:border-box;height:100%;display:grid;grid-template-rows:auto minmax(0,1fr);gap:12px;
+  padding-block:12px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px}
+h1{font-family:var(--font-display);font-weight:700;font-size:21px;letter-spacing:-.01em;margin:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tabs button{border-radius:999px;padding:7px 14px}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink);font-weight:600}
+.tab{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;min-height:0;height:100%}
+.view{position:relative;min-width:0;min-height:420px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--sea)}
+.view canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.view.flat canvas{touch-action:auto}
+.zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
+.zoom button{width:34px;height:34px;padding:0;font-size:17px;line-height:1}
+.readout{position:absolute;left:10px;bottom:8px;font:500 12px var(--font-data);color:var(--chartink);background:color-mix(in srgb,var(--sea) 80%,transparent);padding:2px 6px;border-radius:5px;pointer-events:none}
+.hint{position:absolute;right:10px;bottom:8px;font-size:12px;color:var(--mute);pointer-events:none;text-align:right;max-width:60%}
+.panel{min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;overflow:auto;display:flex;flex-direction:column;gap:16px}
+.panel h3{font-family:var(--font-data);font-weight:500;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);margin:0 0 8px}
+.grid{display:grid;gap:8px}
+.f{display:grid;grid-template-columns:112px minmax(0,1fr);gap:8px;align-items:center;font-size:13px}
+.f>label,.f>span.l{color:var(--mute)}
+.row{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.row i{font-style:normal;color:var(--mute);font-size:12.5px}
+input,select{font:500 13px var(--font-data);color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:7px;padding:6px 7px;min-width:0;box-sizing:border-box}
+select{font-family:var(--font-body);max-width:100%}
+input.n{width:64px} input.s{width:46px} input.t{width:70px}
+button{font:500 13px var(--font-body);color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:8px;padding:7px 11px;cursor:pointer}
+button:hover{border-color:var(--mute)}
+button.go{background:var(--mag);color:#fff;border-color:var(--mag);font-weight:600}
+button.pick[aria-pressed="true"]{background:var(--mag);color:#fff;border-color:var(--mag)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--mag);outline-offset:2px}
+.note{color:var(--mute);font-size:12px;margin:0}
+.rows{display:grid;gap:6px;margin:0}
+.rows div{display:grid;grid-template-columns:10px minmax(0,1fr) auto;gap:8px;align-items:baseline}
+.rows dt{font-size:13px;color:var(--mute)}
+.rows dd{margin:0;font-family:var(--font-data);font-size:13px;font-variant-numeric:tabular-nums;text-align:right}
+.dot{width:8px;height:8px;border-radius:50%;align-self:center}
+.calc{font-family:var(--font-data);font-size:12px;font-variant-numeric:tabular-nums;display:grid;gap:4px;min-width:0}
+.calc p{margin:0;overflow-wrap:anywhere}
+.calc .fm{color:var(--mute)}
+.calc .r{color:var(--fix);font-size:14px;font-weight:500;margin-bottom:6px}
+.calc .w{color:var(--lop3)}
+.card{border:1px solid var(--line);border-radius:9px;padding:9px;display:grid;gap:7px}
+.card>.hd{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13px}
+.card>.hd .sw{width:12px;height:12px;border-radius:3px}
+.pt{display:grid;gap:6px}
+.coord{display:flex;align-items:center;gap:3px;flex-wrap:wrap}
+.coord i{font-style:normal;color:var(--mute)}
+.coord select{padding-right:2px}
+details summary{cursor:pointer;font-family:var(--font-data);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
+.cap{position:absolute;left:12px;right:12px;top:10px;font-size:12px;color:var(--chartink);pointer-events:none;display:grid;gap:2px}
+@media (max-width:860px){
+  .app{height:auto}
+  .tab{grid-template-columns:minmax(0,1fr);height:auto}
+  .view{min-height:0;aspect-ratio:1/1;max-width:100%}
+  #m-view{aspect-ratio:3/4}
+  .panel{overflow:visible}
+  .hint{display:none}
+}
+@media (max-width:480px){ .f{grid-template-columns:minmax(0,1fr);gap:3px} }
+@media (prefers-reduced-motion: reduce){ *{scroll-behavior:auto} }
+</style>
+
+<div class="app">
+  <header>
+    <a href="../index.html" style="color:var(--mute);font-size:13px;text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 12px;white-space:nowrap">← Volver al test</a><h1>Mesa de cartas · PER y PY</h1>
+    <nav class="tabs" role="tablist" aria-label="Mesas de trabajo">
+      <button role="tab" data-tab="carta" aria-selected="true">Carta del Estrecho</button>
+      <button role="tab" data-tab="mareas" aria-selected="false">Mareas</button>
+      <button role="tab" data-tab="aguja" aria-selected="false">Aguja · Ct</button>
+      <button role="tab" data-tab="derrota" aria-selected="false">Derrotas</button>
+    </nav>
+  </header>
+
+  <!-- ============ CARTA ============ -->
+  <section class="tab" id="tab-carta">
+    <div class="view" id="k-view">
+      <canvas id="k-cv" aria-label="Carta del Estrecho de Gibraltar con los faros, la rosa y las líneas del ejercicio"></canvas>
+      <div class="zoom"><button id="k-mas" type="button" aria-label="Acercar">+</button><button id="k-menos" type="button" aria-label="Alejar">−</button><button id="k-fit" type="button" aria-label="Ver toda la carta">⤢</button></div>
+      <div class="readout" id="k-read">36° 00,0′ N · 005° 45,0′ W</div>
+      <div class="hint" id="k-hint">Arrastra para mover · rueda o pellizco para acercar · toca la carta para medir</div>
+    </div>
+    <aside class="panel">
+      <section>
+        <h3>¿Qué ejercicio estás haciendo?</h3>
+        <select id="k-mode" style="width:100%">
+          <option value="situacion">Situación por demoras, distancias, enfilaciones o marcaciones</option>
+          <option value="rumbo">Rumbo a un punto o para pasar a X millas de un faro</option>
+          <option value="estima">Situación estimada (con viento y corriente)</option>
+          <option value="corriente">Calcular la corriente (Rc e Ihc)</option>
+          <option value="medir">Coordenadas, distancia y rumbo entre dos puntos</option>
+        </select>
+      </section>
+      <section id="k-aguja">
+        <h3>Corrección total de la aguja</h3>
+        <div class="grid">
+          <div class="f"><label for="k-ctm">Se conoce</label><select id="k-ctm"><option value="ct">la Ct directamente</option><option value="dm">la dm y el desvío</option></select></div>
+          <div class="f" id="k-ctbox"><label for="k-ct">Ct</label><div class="row"><input id="k-ct" class="n" type="text" inputmode="decimal"><i>° (+ NE, − NW)</i></div></div>
+          <div id="k-dmbox" class="grid" hidden>
+            <div class="f"><span class="l">dm de la carta</span><div class="row"><input id="k-dm" class="n" type="text" aria-label="Declinación magnética en grados y minutos"><i>° ′</i><select id="k-dms" aria-label="Sentido de la declinación"><option value="-1">W (NW)</option><option value="1">E (NE)</option></select></div></div>
+            <div class="f"><span class="l">Año y variación</span><div class="row"><input id="k-dmy" class="s" type="text" inputmode="numeric" aria-label="Año de la carta" style="width:58px"><input id="k-dmv" class="s" type="text" inputmode="decimal" aria-label="Variación anual en minutos"><i>′/año</i><select id="k-dmvs" aria-label="Sentido de la variación"><option value="1">al E</option><option value="-1">al W</option></select></div></div>
+            <div class="f"><label for="k-dmy1">Año actual</label><input id="k-dmy1" class="s" type="text" inputmode="numeric" style="width:58px"></div>
+            <div class="f"><label for="k-des">Desvío (Δ)</label><div class="row"><input id="k-des" class="n" type="text" inputmode="decimal"><i>° (+ NE, − NW)</i></div></div>
+          </div>
+          <p class="note" id="k-ctnote"></p>
+        </div>
+      </section>
+      <section id="k-form"></section>
+      <section><h3>Resultados</h3><dl class="rows" id="k-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="k-calc"></div></section>
+      <details id="k-mia"><summary>Usar mi propia carta (imagen)</summary>
+        <div class="grid" style="margin-top:8px">
+          <p class="note">Si tienes la carta del Estrecho escaneada o en imagen, puedes ponerla de fondo. Se queda en tu navegador: no se sube a ningún sitio.</p>
+          <div class="row"><input id="k-img" type="file" accept="image/*" aria-label="Imagen de la carta"></div>
+          <div class="row"><button type="button" id="k-cal" disabled>Calibrar</button><button type="button" id="k-quita" disabled>Quitar la imagen</button></div>
+          <label class="row" style="font-size:13px"><input type="checkbox" id="k-mios" checked> Dibujar también los faros del simulador</label>
+          <p class="note" id="k-calt"></p>
+        </div>
+      </details>
+      <p class="note">Carta dibujada para el simulador a partir de la costa de OpenStreetMap (© colaboradores de OpenStreetMap, ODbL) y de las posiciones de los faros de la carta de enseñanza del Estrecho. Sirve para practicar; en el examen se trabaja sobre la carta de papel.</p>
+    </aside>
+  </section>
+
+  <!-- ============ MAREAS ============ -->
+  <section class="tab" id="tab-mareas" hidden>
+    <div class="view flat" id="m-view"><canvas id="m-cv" aria-label="Curva de marea y columna de agua con la sonda en el momento"></canvas></div>
+    <aside class="panel">
+      <section>
+        <h3>¿Qué te piden?</h3>
+        <select id="m-mode" style="width:100%">
+          <option value="altura">La sonda (o la altura de la marea) a una hora</option>
+          <option value="hora">La hora a la que habrá una sonda o una altura</option>
+          <option value="extremo">La sonda en una pleamar o una bajamar</option>
+        </select>
+      </section>
+      <section>
+        <h3>Datos del Anuario de Mareas</h3>
+        <div class="grid">
+          <div class="f"><span class="l">Bajamar</span><div class="row"><input id="m-tb" class="t" type="text" aria-label="Hora de la bajamar"><input id="m-hb" class="n" type="text" inputmode="decimal" aria-label="Altura de la bajamar"><i>m</i></div></div>
+          <div class="f"><span class="l">Pleamar</span><div class="row"><input id="m-tp" class="t" type="text" aria-label="Hora de la pleamar"><input id="m-hp" class="n" type="text" inputmode="decimal" aria-label="Altura de la pleamar"><i>m</i></div></div>
+          <p class="note">Escribe las dos mareas consecutivas que rodean la hora del ejercicio, con la misma hora que use el enunciado (UT, oficial o reloj de bitácora).</p>
+        </div>
+      </section>
+      <section>
+        <h3>Datos del ejercicio</h3>
+        <div class="grid">
+          <div class="f" id="m-tbox"><label for="m-t">Hora pedida</label><input id="m-t" class="t" type="text"></div>
+          <div class="f" id="m-qbox" hidden><label for="m-q">Sonda buscada</label><div class="row"><input id="m-q" class="n" type="text" inputmode="decimal"><i>m (sonda del momento)</i></div></div>
+          <div class="f" id="m-ebox" hidden><label for="m-e">Extremo</label><select id="m-e"><option value="p">Pleamar</option><option value="b">Bajamar</option></select></div>
+          <div class="f"><label for="m-sc">Sonda de la carta</label><div class="row"><input id="m-sc" class="n" type="text" inputmode="decimal"><i>m</i></div></div>
+          <div class="f"><label for="m-p">Presión</label><div class="row"><input id="m-p" class="n" type="text" inputmode="decimal"><i>hPa (vacío: no se corrige)</i></div></div>
+          <div class="f"><label for="m-cal">Calado</label><div class="row"><input id="m-cal" class="n" type="text" inputmode="decimal"><i>m (opcional)</i></div></div>
+        </div>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="m-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="m-calc"></div></section>
+    </aside>
+  </section>
+
+  <!-- ============ AGUJA ============ -->
+  <section class="tab" id="tab-aguja" hidden>
+    <div class="view flat" id="a-view"><canvas id="a-cv" aria-label="Rosa con el norte verdadero, el magnético y el de aguja"></canvas>
+      <div class="cap"><span><b style="color:var(--chartink)">Nv</b> norte verdadero · <b style="color:var(--lop1)">Nm</b> norte magnético · <b style="color:var(--mag)">Na</b> norte de aguja</span><span id="a-cap"></span></div></div>
+    <aside class="panel">
+      <section>
+        <h3>Declinación magnética de la carta</h3>
+        <div class="grid">
+          <div class="f"><span class="l">dm</span><div class="row"><input id="a-dm" class="n" type="text" inputmode="decimal" aria-label="Declinación en grados"><i>°</i><select id="a-dms" aria-label="Sentido"><option value="-1">W (NW)</option><option value="1">E (NE)</option></select></div></div>
+          <div class="f"><span class="l">Año y variación</span><div class="row"><input id="a-y0" class="s" type="text" inputmode="numeric" aria-label="Año de la carta" style="width:58px"><input id="a-va" class="s" type="text" inputmode="decimal" aria-label="Variación anual en minutos"><i>′/año</i><select id="a-vas" aria-label="Sentido de la variación"><option value="1">al E</option><option value="-1">al W</option></select></div></div>
+          <div class="f"><label for="a-y1">Año actual</label><input id="a-y1" class="s" type="text" inputmode="numeric" style="width:58px"></div>
+          <p class="note">En la rosa de la carta del Estrecho pone «2° 50′ W 2005 (7′ E)»: 2° 50′ al W en 2005, y cada año se desplaza 7′ hacia el E.</p>
+        </div>
+      </section>
+      <section>
+        <h3>Desvío y rumbos</h3>
+        <div class="grid">
+          <div class="f"><label for="a-des">Desvío (Δ)</label><div class="row"><input id="a-des" class="n" type="text" inputmode="decimal"><i>° (+ NE, − NW)</i></div></div>
+          <div class="f"><label for="a-ra">Rumbo de aguja</label><div class="row"><input id="a-ra" class="n" type="text" inputmode="decimal"><i>° (o deja vacío)</i></div></div>
+          <div class="f"><label for="a-rv">Rumbo verdadero</label><div class="row"><input id="a-rv" class="n" type="text" inputmode="decimal"><i>° (si buscas el Ra)</i></div></div>
+          <div class="f"><label for="a-cu">Rumbo cuadrantal</label><div class="row"><input id="a-cu" type="text" style="width:110px" placeholder="N 80 W"><i>→ circular</i></div></div>
+        </div>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="a-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="a-calc"></div></section>
+    </aside>
+  </section>
+
+  <!-- ============ DERROTAS ============ -->
+  <section class="tab" id="tab-derrota" hidden>
+    <div class="view flat" id="d-view"><canvas id="d-cv" aria-label="Carta Mercator con la derrota loxodrómica y la ortodrómica"></canvas>
+      <div class="cap"><span><b style="color:var(--est)">Loxodrómica</b>: rumbo constante, recta en la carta Mercator · <b style="color:var(--mag)">Ortodrómica</b>: arco de círculo máximo, el camino más corto</span></div></div>
+    <aside class="panel">
+      <section>
+        <h3>¿Qué ejercicio estás haciendo?</h3>
+        <select id="d-mode" style="width:100%">
+          <option value="ab">Rumbo y distancia entre dos puntos</option>
+          <option value="estima">Situación de llegada (rumbo y distancia)</option>
+        </select>
+      </section>
+      <section>
+        <h3>Punto A (salida)</h3>
+        <div class="coord" id="d-a"></div>
+      </section>
+      <section id="d-bbox">
+        <h3>Punto B (llegada)</h3>
+        <div class="coord" id="d-b"></div>
+      </section>
+      <section id="d-ebox" hidden>
+        <h3>Rumbo y distancia</h3>
+        <div class="grid">
+          <div class="f"><label for="d-r">Rumbo verdadero</label><div class="row"><input id="d-r" class="n" type="text" inputmode="decimal"><i>°</i></div></div>
+          <div class="f"><label for="d-dist">Distancia</label><div class="row"><input id="d-dist" class="n" type="text" inputmode="decimal"><i>millas</i></div></div>
+        </div>
+      </section>
+      <section><h3>Resultados</h3><dl class="rows" id="d-res"></dl></section>
+      <section><h3>Cálculo paso a paso</h3><div class="calc" id="d-calc"></div></section>
+    </aside>
+  </section>
+</div>
+
+<script>
+const COSTA=[[[-6.1668,36.3433],[-6.1633,36.3327],[-6.1564,36.319],[-6.1535,36.3115],[-6.1537,36.3113],[-6.1526,36.3104],[-6.1521,36.3092],[-6.1523,36.3087],[-6.1517,36.3086],[-6.151,36.3073],[-6.151,36.3064],[-6.1501,36.306],[-6.1496,36.3047],[-6.1485,36.3043],[-6.1483,36.3035],[-6.1473,36.3027],[-6.1455,36.2998],[-6.1442,36.2991],[-6.144,36.2981],[-6.1417,36.2954],[-6.1403,36.295],[-6.1389,36.2951],[-6.1367,36.2926],[-6.1346,36.2925],[-6.1344,36.2929],[-6.1349,36.2933],[-6.135,36.2938],[-6.1352,36.2931],[-6.1365,36.2929],[-6.1369,36.2934],[-6.1367,36.2945],[-6.1377,36.2945],[-6.1386,36.2955],[-6.1376,36.297],[-6.1358,36.2951],[-6.1356,36.2944],[-6.1354,36.2953],[-6.1334,36.2959],[-6.1334,36.2965],[-6.1312,36.2968],[-6.1276,36.2962],[-6.1241,36.2952],[-6.1236,36.2953],[-6.1221,36.2946],[-6.1207,36.2949],[-6.1185,36.2937],[-6.1159,36.2943],[-6.1138,36.2933],[-6.1128,36.2919],[-6.1094,36.2894],[-6.1082,36.288],[-6.1068,36.2875],[-6.1046,36.285],[-6.1043,36.2849],[-6.1039,36.2853],[-6.1035,36.2851],[-6.0988,36.2799],[-6.0963,36.2762],[-6.0918,36.2708],[-6.0915,36.2702],[-6.0921,36.2692],[-6.0917,36.2683],[-6.0908,36.2687],[-6.0897,36.2671],[-6.0841,36.2558],[-6.0797,36.2438],[-6.0725,36.2329],[-6.0721,36.2323],[-6.0723,36.232],[-6.0716,36.2313],[-6.071,36.2313],[-6.0659,36.2246],[-6.0643,36.2213],[-6.0614,36.217],[-6.0587,36.2112],[-6.0552,36.207],[-6.0538,36.2046],[-6.0536,36.2035],[-6.0491,36.1999],[-6.0471,36.1996],[-6.0441,36.1959],[-6.0395,36.1914],[-6.0373,36.1874],[-6.0362,36.1847],[-6.0361,36.1828],[-6.0351,36.1816],[-6.0339,36.1811],[-6.0305,36.1819],[-6.03,36.1823],[-6.0305,36.1828],[-6.0304,36.1831],[-6.0295,36.1842],[-6.0283,36.1855],[-6.0268,36.1864],[-6.0206,36.1864],[-6.0135,36.1848],[-6.0111,36.1853],[-6.0097,36.185],[-6.0065,36.1832],[-6.0006,36.182],[-5.9941,36.1795],[-5.9902,36.1795],[-5.9877,36.1785],[-5.9873,36.178],[-5.9855,36.1778],[-5.9854,36.177],[-5.9843,36.1774],[-5.9832,36.177],[-5.9812,36.1772],[-5.9807,36.1765],[-5.9808,36.177],[-5.9803,36.1772],[-5.9778,36.1773],[-5.9771,36.177],[-5.977,36.1774],[-5.9744,36.1774],[-5.9742,36.1778],[-5.9713,36.1783],[-5.9704,36.1789],[-5.9668,36.1798],[-5.9666,36.1802],[-5.9664,36.18],[-5.9655,36.1803],[-5.9653,36.18],[-5.9642,36.1808],[-5.9598,36.181],[-5.9552,36.1822],[-5.9483,36.1857],[-5.9464,36.1863],[-5.9422,36.186],[-5.9364,36.1833],[-5.936,36.1835],[-5.9281,36.1796],[-5.9255,36.1793],[-5.9259,36.1797],[-5.9282,36.18],[-5.9326,36.1821],[-5.9323,36.1843],[-5.9326,36.1844],[-5.9328,36.1845],[-5.9331,36.1826],[-5.9338,36.1827],[-5.9336,36.1846],[-5.934,36.1846],[-5.9342,36.1833],[-5.9353,36.1834],[-5.9349,36.1861],[-5.9338,36.1861],[-5.934,36.1851],[-5.9325,36.1849],[-5.9321,36.1857],[-5.9326,36.1859],[-5.9326,36.1863],[-5.9321,36.1866],[-5.9267,36.1861],[-5.927,36.184],[-5.9298,36.1842],[-5.9299,36.1832],[-5.9293,36.1831],[-5.9299,36.1831],[-5.9296,36.1831],[-5.9297,36.1827],[-5.9303,36.1828],[-5.9303,36.1826],[-5.9268,36.1823],[-5.9264,36.1834],[-5.926,36.1835],[-5.9263,36.1836],[-5.9261,36.1852],[-5.9221,36.1861],[-5.9175,36.1855],[-5.9133,36.1841],[-5.9109,36.1829],[-5.9086,36.1811],[-5.9089,36.1803],[-5.9076,36.1807],[-5.9071,36.1803],[-5.9092,36.1791],[-5.907,36.1801],[-5.9026,36.1773],[-5.9005,36.1765],[-5.8978,36.1745],[-5.8967,36.1729],[-5.892,36.1688],[-5.8827,36.164],[-5.8778,36.1608],[-5.8631,36.1484],[-5.8613,36.146],[-5.854,36.1394],[-5.8512,36.1375],[-5.8397,36.1245],[-5.8263,36.1057],[-5.825,36.1033],[-5.8254,36.1029],[-5.8251,36.1027],[-5.8253,36.1025],[-5.8239,36.1021],[-5.8222,36.1028],[-5.8209,36.1024],[-5.8208,36.1018],[-5.8203,36.1018],[-5.8189,36.1006],[-5.8182,36.1007],[-5.8177,36.1003],[-5.8156,36.0974],[-5.8123,36.0919],[-5.8119,36.0904],[-5.8129,36.089],[-5.8119,36.0888],[-5.8083,36.0896],[-5.8062,36.0894],[-5.8034,36.0859],[-5.8014,36.0823],[-5.8007,36.0819],[-5.8002,36.0803],[-5.7992,36.08],[-5.7989,36.079],[-5.7983,36.0791],[-5.7982,36.0785],[-5.7976,36.0785],[-5.7976,36.078],[-5.7962,36.0776],[-5.7922,36.0788],[-5.7913,36.0792],[-5.7913,36.0797],[-5.7904,36.0796],[-5.7882,36.0808],[-5.7868,36.0821],[-5.7865,36.0833],[-5.7849,36.0851],[-5.7846,36.0871],[-5.7839,36.0878],[-5.7812,36.0884],[-5.779,36.0884],[-5.7746,36.0877],[-5.7708,36.0862],[-5.7677,36.0845],[-5.7548,36.0744],[-5.7515,36.0728],[-5.7502,36.0712],[-5.7444,36.0704],[-5.7412,36.0685],[-5.739,36.0682],[-5.7378,36.0674],[-5.7346,36.0672],[-5.7324,36.0664],[-5.7281,36.0638],[-5.7274,36.0639],[-5.725,36.0626],[-5.7247,36.0613],[-5.724,36.0601],[-5.7245,36.0615],[-5.7242,36.0619],[-5.7227,36.061],[-5.7234,36.06],[-5.7223,36.0609],[-5.721,36.0605],[-5.7212,36.0599],[-5.7209,36.0605],[-5.7206,36.0604],[-5.7208,36.0599],[-5.7206,36.0604],[-5.7202,36.0603],[-5.7202,36.0595],[-5.7196,36.0603],[-5.7193,36.0602],[-5.7194,36.0596],[-5.7186,36.0607],[-5.7184,36.0605],[-5.7179,36.0608],[-5.7159,36.0606],[-5.7115,36.0588],[-5.7083,36.0592],[-5.7048,36.0609],[-5.7,36.0626],[-5.6996,36.064],[-5.696,36.0668],[-5.6939,36.0675],[-5.6902,36.0678],[-5.6876,36.0673],[-5.6838,36.0658],[-5.6801,36.0637],[-5.6779,36.0619],[-5.6708,36.0581],[-5.6655,36.0562],[-5.6599,36.0561],[-5.6528,36.0533],[-5.6486,36.051],[-5.6448,36.0483],[-5.6362,36.0408],[-5.6191,36.022],[-5.612,36.0127],[-5.609,36.0076],[-5.6087,36.0064],[-5.6093,36.0057],[-5.61,36.0056],[-5.6102,36.005],[-5.6106,36.0049],[-5.6103,36.0053],[-5.6108,36.0052],[-5.6099,36.0059],[-5.6118,36.0053],[-5.6116,36.0051],[-5.6122,36.0047],[-5.6115,36.0049],[-5.6122,36.0046],[-5.6129,36.0034],[-5.6125,36.0024],[-5.6128,36.0019],[-5.6117,36.0014],[-5.6115,36.0003],[-5.6111,36.0],[-5.6101,36.0001],[-5.6083,36.0009],[-5.6082,36.0014],[-5.6077,36.0015],[-5.6079,36.0019],[-5.6071,36.0021],[-5.6072,36.003],[-5.6067,36.0034],[-5.6063,36.0033],[-5.6062,36.0043],[-5.6078,36.005],[-5.6077,36.0054],[-5.608,36.0052],[-5.6087,36.0058],[-5.6074,36.0076],[-5.6063,36.0083],[-5.6059,36.0082],[-5.6062,36.0076],[-5.6058,36.0081],[-5.6048,36.0079],[-5.6026,36.0085],[-5.6051,36.0084],[-5.6049,36.0085],[-5.6052,36.0085],[-5.6055,36.0095],[-5.6054,36.0103],[-5.605,36.0104],[-5.6044,36.0093],[-5.6049,36.0104],[-5.6044,36.0106],[-5.6042,36.0101],[-5.6044,36.0106],[-5.604,36.0107],[-5.6037,36.0101],[-5.6028,36.0104],[-5.6019,36.0101],[-5.6016,36.0095],[-5.6014,36.0079],[-5.6034,36.0064],[-5.601,36.008],[-5.6015,36.0099],[-5.6009,36.0105],[-5.601,36.0112],[-5.6007,36.0114],[-5.5985,36.0115],[-5.5981,36.0119],[-5.598,36.0114],[-5.5966,36.012],[-5.5966,36.0117],[-5.596,36.0113],[-5.5952,36.0113],[-5.5929,36.0116],[-5.5925,36.0121],[-5.5911,36.0117],[-5.5881,36.0119],[-5.5827,36.0132],[-5.5825,36.013],[-5.5835,36.0126],[-5.574,36.0154],[-5.5703,36.0172],[-5.5675,36.0178],[-5.5669,36.0183],[-5.5622,36.0202],[-5.5597,36.0208],[-5.5553,36.0232],[-5.5531,36.0237],[-5.5528,36.0244],[-5.5497,36.0259],[-5.5485,36.0269],[-5.5472,36.0272],[-5.5435,36.0291],[-5.54,36.0298],[-5.5395,36.0312],[-5.5388,36.0317],[-5.5357,36.0324],[-5.5335,36.0334],[-5.5281,36.0347],[-5.526,36.0357],[-5.5222,36.0359],[-5.5218,36.0363],[-5.5206,36.0363],[-5.5208,36.0364],[-5.5206,36.0367],[-5.5198,36.0372],[-5.5167,36.0374],[-5.5159,36.0388],[-5.5138,36.0403],[-5.5062,36.0426],[-5.5038,36.0437],[-5.5032,36.0453],[-5.5007,36.0463],[-5.5,36.0479],[-5.4988,36.0489],[-5.4976,36.0487],[-5.496,36.0501],[-5.4947,36.0503],[-5.492,36.0513],[-5.4865,36.0545],[-5.4852,36.0548],[-5.4832,36.0545],[-5.4829,36.0541],[-5.4831,36.0532],[-5.48,36.0533],[-5.4727,36.0513],[-5.4717,36.0507],[-5.468,36.0509],[-5.4669,36.0503],[-5.4645,36.0503],[-5.4599,36.0527],[-5.4585,36.054],[-5.4514,36.0555],[-5.4489,36.057],[-5.4474,36.0581],[-5.4484,36.0592],[-5.4486,36.06],[-5.448,36.0612],[-5.447,36.0619],[-5.4447,36.0618],[-5.4449,36.0625],[-5.4433,36.0633],[-5.4439,36.0641],[-5.4436,36.0649],[-5.4408,36.0658],[-5.4403,36.0668],[-5.4384,36.0678],[-5.4369,36.069],[-5.4341,36.0701],[-5.4322,36.0702],[-5.4305,36.0712],[-5.4297,36.0725],[-5.4289,36.0729],[-5.4293,36.0732],[-5.4293,36.0745],[-5.4284,36.0757],[-5.4257,36.077],[-5.426,36.0792],[-5.4253,36.0802],[-5.4267,36.0806],[-5.4264,36.0812],[-5.4266,36.0828],[-5.4291,36.0838],[-5.43,36.0846],[-5.4339,36.0851],[-5.4357,36.0862],[-5.4409,36.0861],[-5.4419,36.0885],[-5.4428,36.0887],[-5.4434,36.0896],[-5.4435,36.0922],[-5.443,36.0958],[-5.4421,36.0992],[-5.4415,36.1001],[-5.4411,36.1],[-5.4413,36.1006],[-5.4401,36.1028],[-5.4383,36.1035],[-5.436,36.106],[-5.4341,36.1062],[-5.4325,36.1052],[-5.4315,36.1052],[-5.4311,36.106],[-5.4319,36.1071],[-5.4316,36.1081],[-5.4322,36.1093],[-5.4352,36.1096],[-5.4367,36.1109],[-5.4376,36.1124],[-5.4375,36.1139],[-5.4363,36.115],[-5.4351,36.1186],[-5.4354,36.1186],[-5.4357,36.1173],[-5.4364,36.1173],[-5.4378,36.1172],[-5.4378,36.1191],[-5.4383,36.1191],[-5.4381,36.1177],[-5.4391,36.1176],[-5.4414,36.1184],[-5.4415,36.121],[-5.4414,36.1213],[-5.4371,36.1213],[-5.436,36.1227],[-5.4347,36.1218],[-5.4353,36.121],[-5.4351,36.1212],[-5.435,36.1209],[-5.4371,36.119],[-5.4369,36.1188],[-5.4349,36.1206],[-5.4329,36.1202],[-5.4225,36.1205],[-5.4223,36.1199],[-5.4228,36.1328],[-5.4297,36.133],[-5.4297,36.1333],[-5.4301,36.1333],[-5.43,36.1436],[-5.4279,36.1476],[-5.4282,36.1477],[-5.4302,36.1436],[-5.4306,36.133],[-5.4309,36.133],[-5.4319,36.128],[-5.4412,36.1271],[-5.4412,36.1266],[-5.4424,36.1276],[-5.4435,36.1274],[-5.4399,36.1287],[-5.4383,36.1298],[-5.4381,36.1296],[-5.4377,36.1298],[-5.4379,36.13],[-5.4363,36.131],[-5.4374,36.1304],[-5.4381,36.1311],[-5.4371,36.1319],[-5.4382,36.1312],[-5.4388,36.1319],[-5.4377,36.1326],[-5.4389,36.132],[-5.4396,36.1328],[-5.4362,36.1349],[-5.4356,36.1483],[-5.4405,36.1485],[-5.4408,36.1488],[-5.4418,36.1476],[-5.4413,36.1467],[-5.4418,36.1372],[-5.4428,36.1311],[-5.4443,36.1305],[-5.4445,36.1309],[-5.4434,36.1376],[-5.4468,36.1379],[-5.4473,36.1387],[-5.4469,36.1417],[-5.4455,36.1434],[-5.4461,36.1455],[-5.4449,36.1485],[-5.4451,36.1491],[-5.4437,36.1489],[-5.4436,36.1492],[-5.4444,36.1494],[-5.4445,36.15],[-5.4444,36.1543],[-5.4436,36.1571],[-5.4428,36.1587],[-5.4384,36.1651],[-5.4346,36.1693],[-5.4306,36.1728],[-5.43,36.1726],[-5.4283,36.1747],[-5.4257,36.1764],[-5.4247,36.1766],[-5.4239,36.1752],[-5.4221,36.1759],[-5.4228,36.1765],[-5.42,36.1775],[-5.4188,36.1752],[-5.4181,36.1753],[-5.4195,36.1786],[-5.4182,36.1761],[-5.4179,36.1762],[-5.4174,36.1752],[-5.4172,36.1753],[-5.4167,36.1745],[-5.42,36.1734],[-5.4199,36.1732],[-5.4162,36.1745],[-5.4172,36.1764],[-5.4142,36.1776],[-5.4147,36.1784],[-5.4144,36.1785],[-5.4148,36.1791],[-5.4143,36.1791],[-5.414,36.1798],[-5.4123,36.1808],[-5.41,36.1814],[-5.4087,36.1815],[-5.4084,36.1808],[-5.4079,36.181],[-5.4033,36.18],[-5.4026,36.1795],[-5.403,36.1799],[-5.4023,36.1796],[-5.4026,36.18],[-5.4016,36.1803],[-5.4001,36.1793],[-5.4013,36.1802],[-5.3951,36.181],[-5.3892,36.1805],[-5.3889,36.1803],[-5.3891,36.1797],[-5.3887,36.1803],[-5.3889,36.179],[-5.3881,36.1792],[-5.3888,36.1792],[-5.3885,36.1801],[-5.3862,36.1802],[-5.3837,36.1795],[-5.3819,36.1784],[-5.3815,36.1774],[-5.3823,36.177],[-5.3826,36.1774],[-5.3825,36.1769],[-5.3809,36.1775],[-5.3803,36.1766],[-5.3799,36.1753],[-5.3803,36.1746],[-5.3806,36.1745],[-5.3808,36.1751],[-5.3808,36.1746],[-5.3835,36.1744],[-5.3818,36.1743],[-5.382,36.1735],[-5.3815,36.1722],[-5.3832,36.1719],[-5.3776,36.1724],[-5.3776,36.1721],[-5.3773,36.1722],[-5.3771,36.1706],[-5.3812,36.1701],[-5.3811,36.1697],[-5.3822,36.1698],[-5.382,36.1694],[-5.3807,36.1693],[-5.3755,36.1659],[-5.3762,36.1652],[-5.3765,36.1653],[-5.3743,36.1638],[-5.3745,36.1641],[-5.3738,36.1647],[-5.373,36.1646],[-5.3712,36.1665],[-5.3717,36.1688],[-5.3705,36.1693],[-5.3688,36.168],[-5.3642,36.1665],[-5.3589,36.1635],[-5.3582,36.1615],[-5.3582,36.1608],[-5.3616,36.1596],[-5.3613,36.1591],[-5.3609,36.1596],[-5.3566,36.1612],[-5.3559,36.1604],[-5.359,36.1594],[-5.3588,36.1589],[-5.3585,36.159],[-5.3588,36.1589],[-5.3586,36.1585],[-5.3551,36.1598],[-5.3533,36.1569],[-5.3545,36.1565],[-5.3559,36.159],[-5.3564,36.1588],[-5.3553,36.157],[-5.3583,36.1559],[-5.3596,36.1583],[-5.36,36.1581],[-5.3593,36.1569],[-5.3603,36.1565],[-5.3603,36.1552],[-5.3651,36.1552],[-5.3674,36.1572],[-5.3674,36.1585],[-5.3675,36.1571],[-5.3651,36.1551],[-5.3519,36.1551],[-5.3513,36.1537],[-5.3518,36.1519],[-5.3509,36.152],[-5.3572,36.1516],[-5.3575,36.1532],[-5.3578,36.1518],[-5.3599,36.1514],[-5.3598,36.1501],[-5.3532,36.1504],[-5.353,36.1477],[-5.3532,36.1482],[-5.3545,36.1484],[-5.3535,36.1476],[-5.3543,36.1467],[-5.3567,36.1488],[-5.3583,36.1492],[-5.366,36.1496],[-5.366,36.1441],[-5.3655,36.1441],[-5.3655,36.1482],[-5.3649,36.1482],[-5.3648,36.1473],[-5.3646,36.1473],[-5.3646,36.1482],[-5.3639,36.1482],[-5.3639,36.1473],[-5.363,36.1473],[-5.363,36.1451],[-5.3627,36.1482],[-5.362,36.1482],[-5.362,36.1473],[-5.3617,36.1482],[-5.3611,36.1482],[-5.3611,36.1471],[-5.3607,36.1473],[-5.3602,36.1471],[-5.3605,36.1466],[-5.3617,36.1464],[-5.3618,36.1432],[-5.36,36.1423],[-5.3588,36.141],[-5.3583,36.141],[-5.3582,36.1407],[-5.3586,36.1406],[-5.3577,36.1392],[-5.3584,36.139],[-5.3589,36.1398],[-5.3583,36.1383],[-5.3597,36.1378],[-5.3611,36.1409],[-5.3602,36.1413],[-5.3613,36.141],[-5.3593,36.1367],[-5.3579,36.1369],[-5.3577,36.1365],[-5.3569,36.1366],[-5.3577,36.1384],[-5.3568,36.1387],[-5.356,36.137],[-5.3557,36.1371],[-5.3556,36.1365],[-5.3567,36.1362],[-5.3566,36.1359],[-5.3553,36.1363],[-5.3545,36.1343],[-5.3566,36.1337],[-5.3568,36.134],[-5.3563,36.1341],[-5.357,36.1359],[-5.3574,36.1362],[-5.3578,36.1356],[-5.357,36.1338],[-5.3557,36.1322],[-5.3561,36.1334],[-5.3551,36.1337],[-5.3546,36.1324],[-5.3547,36.133],[-5.3541,36.1331],[-5.3539,36.1324],[-5.3559,36.1318],[-5.3541,36.1276],[-5.3566,36.1261],[-5.364,36.1339],[-5.3644,36.1338],[-5.3575,36.1264],[-5.3553,36.1244],[-5.3542,36.1223],[-5.353,36.1226],[-5.3524,36.1221],[-5.3522,36.1217],[-5.3526,36.1212],[-5.3539,36.1214],[-5.3528,36.1207],[-5.3525,36.12],[-5.3518,36.1198],[-5.3512,36.1193],[-5.3511,36.1188],[-5.3514,36.1188],[-5.3511,36.1179],[-5.3507,36.1178],[-5.3503,36.1158],[-5.3494,36.1149],[-5.3504,36.1125],[-5.3502,36.1109],[-5.3487,36.1096],[-5.3475,36.1091],[-5.3461,36.1088],[-5.3453,36.1095],[-5.3446,36.1095],[-5.3449,36.1109],[-5.3438,36.1129],[-5.3434,36.1131],[-5.3433,36.1153],[-5.3428,36.1164],[-5.3416,36.1174],[-5.3422,36.1183],[-5.3423,36.1196],[-5.3417,36.1207],[-5.3417,36.1219],[-5.3404,36.1238],[-5.3406,36.125],[-5.3397,36.125],[-5.3406,36.1251],[-5.3407,36.1253],[-5.3399,36.1262],[-5.3414,36.1283],[-5.3413,36.1294],[-5.3398,36.1298],[-5.341,36.1298],[-5.3409,36.1314],[-5.3404,36.1319],[-5.3394,36.1316],[-5.3408,36.1324],[-5.3404,36.1335],[-5.3407,36.1339],[-5.3403,36.1347],[-5.3407,36.1351],[-5.3402,36.1359],[-5.3407,36.1362],[-5.3403,36.1375],[-5.3409,36.1382],[-5.3403,36.1397],[-5.3385,36.14],[-5.3376,36.1449],[-5.3379,36.1453],[-5.3395,36.1456],[-5.3397,36.1466],[-5.3396,36.1478],[-5.3389,36.148],[-5.3396,36.1483],[-5.3392,36.1504],[-5.3391,36.1507],[-5.3385,36.1507],[-5.339,36.1508],[-5.3391,36.1512],[-5.3387,36.1523],[-5.3388,36.1541],[-5.3377,36.1607],[-5.3378,36.1633],[-5.3373,36.1639],[-5.3375,36.1643],[-5.3374,36.1663],[-5.3362,36.1718],[-5.336,36.176],[-5.3352,36.1788],[-5.333,36.18],[-5.3359,36.1797],[-5.3353,36.1818],[-5.3342,36.1819],[-5.3332,36.1811],[-5.3336,36.1806],[-5.3331,36.1809],[-5.332,36.1801],[-5.3322,36.179],[-5.3317,36.179],[-5.3318,36.1802],[-5.3338,36.1818],[-5.3337,36.1824],[-5.3323,36.1853],[-5.3311,36.1908],[-5.3274,36.2002],[-5.3236,36.212],[-5.3207,36.22],[-5.3181,36.2262],[-5.3157,36.2309],[-5.3096,36.2398],[-5.3082,36.2413],[-5.3055,36.2436],[-5.3047,36.2439],[-5.3017,36.2438],[-5.2997,36.2433],[-5.2961,36.2467],[-5.2888,36.2604],[-5.2838,36.2722],[-5.2821,36.2754],[-5.2813,36.2753],[-5.282,36.2757],[-5.2791,36.2815],[-5.278,36.283],[-5.2773,36.2833],[-5.2749,36.2829],[-5.2759,36.2832],[-5.2759,36.2835],[-5.2744,36.2865],[-5.2727,36.2876],[-5.272,36.2873],[-5.2719,36.2881],[-5.2706,36.2881],[-5.2707,36.2887],[-5.2708,36.2884],[-5.2714,36.2884],[-5.2717,36.2889],[-5.2717,36.2885],[-5.2742,36.2884],[-5.2742,36.2889],[-5.2756,36.2887],[-5.2761,36.2884],[-5.2758,36.2881],[-5.2762,36.2877],[-5.2773,36.2876],[-5.2774,36.2869],[-5.2791,36.2866],[-5.2795,36.286],[-5.2804,36.286],[-5.2813,36.2865],[-5.2821,36.2878],[-5.2827,36.2878],[-5.283,36.2885],[-5.2813,36.2892],[-5.2796,36.2879],[-5.2783,36.2877],[-5.2775,36.2879],[-5.2768,36.2886],[-5.2766,36.2899],[-5.2754,36.29],[-5.2751,36.2912],[-5.2736,36.2921],[-5.2732,36.2908],[-5.2713,36.2908],[-5.2713,36.2902],[-5.2698,36.2902],[-5.2698,36.2882],[-5.2702,36.2873],[-5.2705,36.2873],[-5.27,36.287],[-5.2697,36.2858],[-5.2695,36.2864],[-5.2699,36.2871],[-5.2693,36.2884],[-5.2694,36.2922],[-5.2697,36.2918],[-5.2709,36.292],[-5.2712,36.293],[-5.2704,36.2958],[-5.2693,36.2986],[-5.2687,36.2995],[-5.2684,36.2994],[-5.2685,36.2999],[-5.2663,36.3011],[-5.2659,36.301],[-5.2657,36.3005],[-5.2656,36.301],[-5.2654,36.3001],[-5.2654,36.301],[-5.2646,36.3024],[-5.2644,36.302],[-5.2642,36.3028],[-5.2645,36.3032],[-5.2641,36.3038],[-5.261,36.3064],[-5.2605,36.3065],[-5.2601,36.3062],[-5.26,36.3067],[-5.2598,36.3064],[-5.2599,36.3068],[-5.2596,36.3067],[-5.2591,36.3083],[-5.2566,36.3105],[-5.2529,36.3113],[-5.2521,36.3112],[-5.2512,36.3103],[-5.2491,36.3108],[-5.248,36.3104],[-5.247,36.311],[-5.2469,36.3121],[-5.2462,36.3124],[-5.2466,36.3126],[-5.2464,36.3132],[-5.2461,36.313],[-5.2464,36.3136],[-5.2444,36.3186],[-5.2428,36.3206],[-5.2427,36.3214],[-5.2423,36.3218],[-5.2423,36.3224],[-5.2372,36.3351],[-5.2347,36.3433]],[[-5.2817,35.6567],[-5.2842,35.6662],[-5.2838,35.6671],[-5.283,35.6676],[-5.2833,35.6682],[-5.2824,35.6692],[-5.2823,35.6705],[-5.2813,35.6712],[-5.2813,35.6723],[-5.2798,35.676],[-5.2765,35.6791],[-5.2735,35.6824],[-5.2734,35.6857],[-5.2738,35.6861],[-5.2765,35.6858],[-5.2775,35.6865],[-5.279,35.6858],[-5.2806,35.6861],[-5.2828,35.6859],[-5.2886,35.6875],[-5.2921,35.6867],[-5.2928,35.6872],[-5.2942,35.6861],[-5.2971,35.6853],[-5.2983,35.6853],[-5.2991,35.6847],[-5.3034,35.6838],[-5.3051,35.6827],[-5.3083,35.6822],[-5.3096,35.6827],[-5.3114,35.6844],[-5.3132,35.6855],[-5.3135,35.6851],[-5.3119,35.6844],[-5.3122,35.6842],[-5.3118,35.6838],[-5.3121,35.6834],[-5.3114,35.6836],[-5.3101,35.6823],[-5.3111,35.6816],[-5.3139,35.6823],[-5.3138,35.6828],[-5.3128,35.6831],[-5.3137,35.683],[-5.3139,35.6835],[-5.314,35.6832],[-5.3158,35.6831],[-5.316,35.6839],[-5.3143,35.684],[-5.3142,35.6843],[-5.3137,35.6842],[-5.3138,35.6845],[-5.3161,35.6842],[-5.3165,35.6831],[-5.3193,35.6832],[-5.3227,35.6873],[-5.3251,35.691],[-5.3282,35.697],[-5.3301,35.7016],[-5.3349,35.7159],[-5.3354,35.7182],[-5.3335,35.7195],[-5.3338,35.7213],[-5.3342,35.7213],[-5.3339,35.7204],[-5.3344,35.7202],[-5.334,35.72],[-5.3339,35.7195],[-5.3348,35.7189],[-5.3364,35.7186],[-5.3376,35.7196],[-5.3348,35.7206],[-5.3359,35.7213],[-5.3365,35.7224],[-5.3389,35.7319],[-5.3421,35.748],[-5.3418,35.7503],[-5.341,35.7513],[-5.3403,35.751],[-5.3403,35.752],[-5.3398,35.7523],[-5.3401,35.753],[-5.3408,35.7529],[-5.3408,35.7526],[-5.3412,35.7524],[-5.3423,35.7528],[-5.3424,35.7539],[-5.342,35.754],[-5.3421,35.7546],[-5.3425,35.7547],[-5.3429,35.7555],[-5.3429,35.7559],[-5.3423,35.7561],[-5.3417,35.7561],[-5.3413,35.7552],[-5.341,35.7552],[-5.341,35.7559],[-5.3398,35.7555],[-5.3399,35.7545],[-5.3396,35.7542],[-5.3395,35.7548],[-5.3392,35.7547],[-5.339,35.7533],[-5.3387,35.7531],[-5.3385,35.7505],[-5.338,35.7507],[-5.3384,35.7539],[-5.339,35.7556],[-5.3401,35.7566],[-5.3419,35.7574],[-5.3437,35.7574],[-5.344,35.7578],[-5.3464,35.7723],[-5.346,35.7737],[-5.3452,35.774],[-5.3448,35.7736],[-5.3448,35.7742],[-5.3468,35.7758],[-5.3478,35.7777],[-5.3474,35.7781],[-5.3479,35.7799],[-5.349,35.7881],[-5.3518,35.8189],[-5.3526,35.8308],[-5.3525,35.8368],[-5.3535,35.8399],[-5.353,35.8414],[-5.3536,35.8416],[-5.3534,35.8424],[-5.3521,35.8423],[-5.3518,35.8419],[-5.3519,35.8411],[-5.3515,35.8411],[-5.3516,35.8421],[-5.3529,35.8427],[-5.3531,35.8432],[-5.3525,35.8492],[-5.3506,35.8516],[-5.3468,35.8543],[-5.3464,35.8552],[-5.3467,35.8565],[-5.3461,35.8591],[-5.3462,35.8603],[-5.3457,35.8614],[-5.3452,35.8645],[-5.3446,35.8657],[-5.3442,35.8693],[-5.3434,35.8709],[-5.3431,35.8709],[-5.3433,35.8713],[-5.3426,35.8729],[-5.3422,35.8732],[-5.3403,35.8763],[-5.3379,35.8784],[-5.3355,35.8794],[-5.3332,35.8797],[-5.3306,35.8787],[-5.3301,35.8789],[-5.3288,35.8785],[-5.3281,35.8788],[-5.3274,35.8797],[-5.3264,35.8801],[-5.3246,35.8815],[-5.3247,35.8822],[-5.3242,35.8832],[-5.3232,35.8838],[-5.3218,35.8855],[-5.3201,35.8867],[-5.3188,35.8868],[-5.3186,35.8886],[-5.3191,35.8899],[-5.318,35.8898],[-5.3143,35.8932],[-5.315,35.8936],[-5.3174,35.8913],[-5.3193,35.8917],[-5.3195,35.8919],[-5.3188,35.8925],[-5.318,35.892],[-5.3201,35.8935],[-5.3208,35.8945],[-5.3226,35.8953],[-5.3247,35.8968],[-5.323,35.8986],[-5.32,35.8986],[-5.315,35.8962],[-5.3122,35.8959],[-5.3124,35.8954],[-5.3119,35.8954],[-5.3118,35.8959],[-5.3112,35.8961],[-5.3149,35.8966],[-5.3201,35.899],[-5.3231,35.899],[-5.325,35.9009],[-5.3332,35.8954],[-5.3333,35.8942],[-5.3349,35.894],[-5.3361,35.8944],[-5.3385,35.8959],[-5.3384,35.8962],[-5.3397,35.8964],[-5.3399,35.897],[-5.3394,35.8972],[-5.3413,35.8993],[-5.3434,35.8998],[-5.3454,35.9017],[-5.3456,35.9032],[-5.3462,35.9044],[-5.347,35.9051],[-5.3479,35.9076],[-5.3494,35.9079],[-5.3503,35.9086],[-5.3504,35.9091],[-5.3522,35.9092],[-5.3546,35.9102],[-5.3547,35.9106],[-5.3556,35.9108],[-5.3574,35.9122],[-5.36,35.9134],[-5.3603,35.9137],[-5.3598,35.9146],[-5.3604,35.9141],[-5.361,35.9143],[-5.3618,35.915],[-5.3637,35.9157],[-5.3642,35.9167],[-5.3658,35.9177],[-5.367,35.9177],[-5.3669,35.918],[-5.369,35.9168],[-5.3709,35.9165],[-5.373,35.9169],[-5.3751,35.9162],[-5.3765,35.9161],[-5.378,35.9162],[-5.3785,35.9166],[-5.3787,35.9161],[-5.3794,35.916],[-5.3793,35.9152],[-5.3796,35.9148],[-5.3808,35.9135],[-5.3815,35.9132],[-5.3818,35.9135],[-5.382,35.9125],[-5.3825,35.9121],[-5.3857,35.9114],[-5.3861,35.9106],[-5.3902,35.909],[-5.3942,35.9096],[-5.3973,35.9113],[-5.3989,35.9132],[-5.3996,35.9133],[-5.3984,35.9143],[-5.3984,35.9149],[-5.397,35.9164],[-5.397,35.9171],[-5.3992,35.9186],[-5.401,35.9205],[-5.4011,35.9213],[-5.4014,35.9213],[-5.4013,35.9224],[-5.4023,35.9219],[-5.4028,35.9222],[-5.4027,35.9218],[-5.4037,35.921],[-5.4036,35.9204],[-5.405,35.9191],[-5.4049,35.9187],[-5.4057,35.9183],[-5.4057,35.9176],[-5.4062,35.918],[-5.4062,35.9177],[-5.4065,35.9178],[-5.4102,35.9133],[-5.4108,35.9132],[-5.4125,35.9116],[-5.4147,35.9103],[-5.415,35.9105],[-5.4161,35.9094],[-5.418,35.9099],[-5.4193,35.9093],[-5.4237,35.9098],[-5.4246,35.9088],[-5.4257,35.9084],[-5.4316,35.9071],[-5.435,35.908],[-5.4366,35.91],[-5.437,35.9095],[-5.438,35.9095],[-5.4393,35.9087],[-5.4401,35.9055],[-5.4412,35.9052],[-5.4411,35.9042],[-5.4473,35.9048],[-5.4496,35.9059],[-5.4507,35.9068],[-5.4515,35.9084],[-5.4509,35.9104],[-5.4509,35.9121],[-5.4527,35.9131],[-5.4553,35.9134],[-5.4564,35.9143],[-5.4573,35.9146],[-5.4591,35.9145],[-5.4619,35.9136],[-5.4639,35.9144],[-5.4651,35.9144],[-5.4671,35.9124],[-5.4674,35.9114],[-5.4692,35.9106],[-5.4714,35.9083],[-5.474,35.9078],[-5.4725,35.908],[-5.472,35.9079],[-5.4721,35.9072],[-5.4727,35.907],[-5.4731,35.9074],[-5.4733,35.9068],[-5.4745,35.9061],[-5.4779,35.9058],[-5.4799,35.9059],[-5.4813,35.9078],[-5.4821,35.9085],[-5.4826,35.9085],[-5.4831,35.9081],[-5.4827,35.9073],[-5.4832,35.9058],[-5.4869,35.9014],[-5.4866,35.8999],[-5.4869,35.8991],[-5.488,35.8994],[-5.4896,35.8991],[-5.4916,35.898],[-5.4921,35.8973],[-5.4883,35.8989],[-5.4875,35.8983],[-5.5002,35.8875],[-5.5024,35.8893],[-5.5009,35.8908],[-5.5015,35.8912],[-5.503,35.8897],[-5.5038,35.8899],[-5.5046,35.8907],[-5.5012,35.8945],[-5.5016,35.8948],[-5.5012,35.8953],[-5.5012,35.8959],[-5.4976,35.8984],[-5.4975,35.8981],[-5.4966,35.8987],[-5.497,35.8988],[-5.4958,35.8997],[-5.4943,35.9001],[-5.4943,35.9004],[-5.4954,35.9001],[-5.5038,35.8944],[-5.5053,35.8927],[-5.5069,35.8894],[-5.5074,35.8863],[-5.5071,35.8856],[-5.5082,35.8839],[-5.5111,35.8825],[-5.5162,35.8825],[-5.5191,35.8821],[-5.519,35.8818],[-5.5146,35.8822],[-5.5148,35.8816],[-5.5142,35.8808],[-5.5145,35.8796],[-5.5156,35.8783],[-5.5183,35.8769],[-5.5208,35.8767],[-5.5212,35.8764],[-5.5225,35.8783],[-5.5222,35.8842],[-5.5225,35.8827],[-5.5281,35.8796],[-5.5308,35.8773],[-5.5308,35.877],[-5.5304,35.8769],[-5.528,35.8792],[-5.5246,35.8811],[-5.5228,35.8791],[-5.5228,35.8784],[-5.5432,35.8593],[-5.54,35.8571],[-5.5407,35.8564],[-5.5411,35.8564],[-5.5433,35.8583],[-5.5436,35.8579],[-5.5463,35.8604],[-5.5464,35.8613],[-5.5402,35.8732],[-5.5387,35.8751],[-5.5375,35.8746],[-5.5385,35.8753],[-5.5343,35.8796],[-5.5334,35.8813],[-5.5337,35.8814],[-5.5352,35.879],[-5.5404,35.8737],[-5.5462,35.8623],[-5.5477,35.8606],[-5.5471,35.8607],[-5.5408,35.8547],[-5.5427,35.854],[-5.5426,35.8536],[-5.543,35.8531],[-5.5487,35.8498],[-5.55,35.8481],[-5.5502,35.8473],[-5.554,35.845],[-5.556,35.8445],[-5.5582,35.8445],[-5.5598,35.8451],[-5.5606,35.8463],[-5.5608,35.8475],[-5.5604,35.8477],[-5.5605,35.8481],[-5.5598,35.8483],[-5.561,35.8482],[-5.5617,35.8485],[-5.5627,35.8477],[-5.5631,35.8464],[-5.5648,35.8456],[-5.5663,35.8429],[-5.5682,35.8417],[-5.5695,35.8416],[-5.5709,35.8431],[-5.5704,35.842],[-5.573,35.8406],[-5.5713,35.8413],[-5.5709,35.8408],[-5.5731,35.8396],[-5.5736,35.8402],[-5.5752,35.8394],[-5.576,35.8409],[-5.5743,35.8417],[-5.5746,35.8421],[-5.5766,35.8412],[-5.5768,35.8417],[-5.5765,35.8425],[-5.5746,35.8435],[-5.5747,35.8438],[-5.5706,35.8459],[-5.57,35.8459],[-5.5698,35.8462],[-5.5704,35.8465],[-5.5774,35.8426],[-5.5778,35.8412],[-5.5769,35.8395],[-5.577,35.8393],[-5.5779,35.8389],[-5.5785,35.8393],[-5.5791,35.8392],[-5.5795,35.838],[-5.5818,35.8363],[-5.5883,35.8334],[-5.5917,35.8325],[-5.5938,35.8323],[-5.5956,35.8316],[-5.5968,35.8317],[-5.5977,35.8322],[-5.5985,35.8312],[-5.5993,35.8308],[-5.6013,35.8302],[-5.6043,35.8301],[-5.6096,35.8325],[-5.6166,35.8326],[-5.6184,35.8333],[-5.6202,35.8348],[-5.6283,35.8354],[-5.6316,35.8344],[-5.6334,35.8333],[-5.6375,35.832],[-5.6387,35.8318],[-5.6393,35.8321],[-5.6422,35.8314],[-5.647,35.8288],[-5.6501,35.8278],[-5.6539,35.8272],[-5.6565,35.8277],[-5.6582,35.8291],[-5.6622,35.8305],[-5.6675,35.8305],[-5.671,35.8325],[-5.6757,35.8332],[-5.677,35.8342],[-5.6784,35.8361],[-5.679,35.8376],[-5.679,35.8369],[-5.6794,35.8368],[-5.6822,35.8376],[-5.684,35.8369],[-5.6849,35.8381],[-5.6861,35.8379],[-5.6865,35.8389],[-5.6865,35.8382],[-5.6874,35.8389],[-5.6878,35.8385],[-5.6893,35.8387],[-5.6897,35.8379],[-5.6918,35.8368],[-5.693,35.8356],[-5.6948,35.8347],[-5.6959,35.8345],[-5.6988,35.8324],[-5.7012,35.8317],[-5.7036,35.832],[-5.7048,35.8316],[-5.7061,35.8304],[-5.7077,35.8296],[-5.7091,35.8295],[-5.7092,35.83],[-5.7101,35.8294],[-5.7095,35.8303],[-5.711,35.8298],[-5.7127,35.8303],[-5.7137,35.8294],[-5.7165,35.829],[-5.7175,35.8294],[-5.7188,35.8308],[-5.7192,35.8307],[-5.721,35.8296],[-5.7213,35.8285],[-5.721,35.8279],[-5.722,35.8254],[-5.7238,35.8241],[-5.7248,35.8243],[-5.7261,35.8233],[-5.7293,35.8227],[-5.7346,35.8198],[-5.7364,35.8205],[-5.7383,35.8199],[-5.7389,35.8187],[-5.7396,35.8183],[-5.7412,35.8184],[-5.7442,35.8194],[-5.7502,35.8178],[-5.7507,35.8168],[-5.7501,35.8153],[-5.7508,35.8137],[-5.7496,35.8121],[-5.7484,35.8116],[-5.7481,35.811],[-5.7481,35.8102],[-5.7486,35.8096],[-5.7484,35.8081],[-5.7488,35.806],[-5.7483,35.8052],[-5.7492,35.8036],[-5.7501,35.8026],[-5.7504,35.801],[-5.7528,35.7976],[-5.7551,35.7963],[-5.7573,35.7928],[-5.7575,35.7918],[-5.7589,35.7906],[-5.7597,35.7895],[-5.7627,35.7879],[-5.7626,35.7876],[-5.7631,35.7878],[-5.7647,35.7861],[-5.7667,35.785],[-5.7668,35.7843],[-5.7692,35.7832],[-5.7688,35.7825],[-5.7693,35.7826],[-5.77,35.782],[-5.7697,35.7817],[-5.7822,35.7768],[-5.7875,35.7765],[-5.7906,35.7768],[-5.7943,35.7777],[-5.7967,35.7789],[-5.7978,35.7797],[-5.7991,35.7818],[-5.7963,35.7835],[-5.7967,35.7843],[-5.8031,35.7805],[-5.8043,35.7812],[-5.8047,35.782],[-5.797,35.7865],[-5.7955,35.7852],[-5.795,35.7835],[-5.7953,35.7852],[-5.7978,35.7884],[-5.8023,35.7857],[-5.8044,35.7864],[-5.8045,35.7869],[-5.8045,35.7865],[-5.8049,35.7866],[-5.8064,35.7841],[-5.8074,35.7845],[-5.8075,35.7852],[-5.8064,35.7853],[-5.8064,35.7868],[-5.8079,35.7869],[-5.8079,35.7876],[-5.8048,35.7874],[-5.804,35.788],[-5.8036,35.7877],[-5.8038,35.7882],[-5.8024,35.7871],[-5.8036,35.7884],[-5.8036,35.7892],[-5.8019,35.7897],[-5.8035,35.7894],[-5.8042,35.7903],[-5.8029,35.791],[-5.801,35.7914],[-5.7946,35.7909],[-5.7931,35.7911],[-5.8013,35.7918],[-5.8041,35.7912],[-5.8048,35.7914],[-5.8051,35.7921],[-5.8054,35.792],[-5.8054,35.7915],[-5.8074,35.7912],[-5.8079,35.7919],[-5.8081,35.7907],[-5.8105,35.791],[-5.8107,35.7908],[-5.8107,35.7911],[-5.8116,35.7912],[-5.8113,35.7927],[-5.8037,35.7931],[-5.8036,35.7935],[-5.8116,35.7931],[-5.8127,35.7923],[-5.8132,35.7908],[-5.8225,35.793],[-5.8236,35.7939],[-5.8246,35.7942],[-5.825,35.795],[-5.8256,35.7952],[-5.8292,35.7956],[-5.8316,35.795],[-5.8335,35.7941],[-5.8361,35.7947],[-5.8369,35.7958],[-5.8385,35.7966],[-5.8388,35.7972],[-5.8402,35.7968],[-5.8414,35.7973],[-5.8414,35.7978],[-5.8426,35.7973],[-5.8446,35.798],[-5.8456,35.7998],[-5.8464,35.7999],[-5.8467,35.8008],[-5.8471,35.8003],[-5.8479,35.8011],[-5.8479,35.8002],[-5.8485,35.7994],[-5.8489,35.7995],[-5.8488,35.7988],[-5.8499,35.7984],[-5.8508,35.7974],[-5.8547,35.7973],[-5.857,35.7977],[-5.8583,35.7974],[-5.8597,35.7978],[-5.8602,35.7974],[-5.8611,35.7974],[-5.8624,35.796],[-5.8629,35.7959],[-5.8699,35.7983],[-5.8758,35.7972],[-5.8799,35.798],[-5.8822,35.798],[-5.8838,35.7993],[-5.8885,35.7996],[-5.8891,35.8008],[-5.8897,35.8011],[-5.8921,35.8005],[-5.9005,35.8004],[-5.902,35.8001],[-5.9072,35.8012],[-5.9084,35.8005],[-5.9097,35.8002],[-5.91,35.7999],[-5.91,35.7989],[-5.9117,35.7975],[-5.9153,35.7966],[-5.9161,35.7956],[-5.9189,35.7945],[-5.9213,35.7924],[-5.9244,35.7919],[-5.9247,35.7921],[-5.9251,35.7916],[-5.9257,35.7917],[-5.9266,35.7908],[-5.9266,35.7905],[-5.9279,35.7894],[-5.9285,35.7894],[-5.9287,35.7888],[-5.9294,35.7886],[-5.9295,35.7882],[-5.9289,35.7882],[-5.929,35.7878],[-5.9303,35.7871],[-5.9298,35.7862],[-5.9307,35.7845],[-5.9308,35.7833],[-5.9312,35.7827],[-5.9321,35.7822],[-5.9312,35.7811],[-5.9304,35.7792],[-5.9323,35.7752],[-5.9341,35.7751],[-5.9335,35.7743],[-5.935,35.771],[-5.9377,35.7619],[-5.9398,35.7601],[-5.9391,35.7587],[-5.9378,35.7578],[-5.9378,35.7571],[-5.9446,35.7399],[-5.9477,35.7297],[-5.9476,35.7285],[-5.9484,35.7274],[-5.9544,35.7092],[-5.9556,35.7065],[-5.9563,35.7033],[-5.9579,35.7007],[-5.9587,35.6985],[-5.9596,35.6944],[-5.9632,35.685],[-5.9668,35.6782],[-5.97,35.6681],[-5.9707,35.6636],[-5.9721,35.6598],[-5.9729,35.6567]],[[-5.3175,35.8898],[-5.3179,35.8895],[-5.3188,35.8897],[-5.3185,35.8876],[-5.3179,35.8873],[-5.3175,35.8865],[-5.3166,35.8869],[-5.3147,35.8869],[-5.3106,35.885],[-5.3069,35.8844],[-5.302,35.8862],[-5.3003,35.8863],[-5.3001,35.887],[-5.2987,35.8887],[-5.2969,35.8897],[-5.2965,35.8898],[-5.2942,35.8886],[-5.2933,35.8891],[-5.2929,35.8888],[-5.2915,35.8892],[-5.2916,35.8895],[-5.291,35.8902],[-5.2901,35.8906],[-5.2882,35.8903],[-5.2878,35.8905],[-5.2882,35.8908],[-5.2873,35.8907],[-5.2867,35.891],[-5.2869,35.8915],[-5.2865,35.8915],[-5.2868,35.8917],[-5.286,35.8919],[-5.2857,35.8923],[-5.2857,35.892],[-5.2854,35.892],[-5.2854,35.8926],[-5.285,35.8924],[-5.2853,35.8931],[-5.2847,35.8931],[-5.285,35.8934],[-5.2843,35.8934],[-5.2839,35.8939],[-5.284,35.8942],[-5.2835,35.8944],[-5.2836,35.8941],[-5.2833,35.8941],[-5.2829,35.895],[-5.2824,35.895],[-5.2813,35.894],[-5.2806,35.8943],[-5.28,35.8953],[-5.2805,35.8955],[-5.28,35.8958],[-5.2805,35.896],[-5.2793,35.8967],[-5.2789,35.8976],[-5.2783,35.8978],[-5.2789,35.8981],[-5.2786,35.8985],[-5.2793,35.8989],[-5.2787,35.8993],[-5.2789,35.8996],[-5.2785,35.8998],[-5.2785,35.9002],[-5.2789,35.9002],[-5.2787,35.9006],[-5.2794,35.9008],[-5.2816,35.9001],[-5.2817,35.9005],[-5.2823,35.9003],[-5.2837,35.9009],[-5.2839,35.9016],[-5.2843,35.9017],[-5.2841,35.9021],[-5.2845,35.9022],[-5.284,35.9025],[-5.2845,35.9025],[-5.2839,35.9032],[-5.2859,35.9036],[-5.2878,35.9065],[-5.2877,35.9069],[-5.2881,35.9066],[-5.2884,35.9072],[-5.2904,35.9041],[-5.297,35.902],[-5.2992,35.9002],[-5.2997,35.8994],[-5.2993,35.8968],[-5.3013,35.895],[-5.3078,35.8957],[-5.3077,35.8954],[-5.302,35.8947],[-5.3018,35.8939],[-5.3026,35.8928],[-5.3033,35.8929],[-5.3032,35.8936],[-5.3027,35.894],[-5.3033,35.8937],[-5.3034,35.8929],[-5.3049,35.8931],[-5.3052,35.8934],[-5.3072,35.8925],[-5.3075,35.8929],[-5.3074,35.8925],[-5.3077,35.8923],[-5.3071,35.8914],[-5.3084,35.8908],[-5.3094,35.8921],[-5.3086,35.8907],[-5.3098,35.8901],[-5.312,35.8899],[-5.3151,35.891],[-5.3152,35.8907],[-5.3131,35.8901],[-5.3135,35.8891],[-5.3162,35.8895],[-5.3159,35.8902],[-5.3151,35.8902],[-5.3157,35.8905],[-5.3175,35.8898]],[[-5.4191,35.9152],[-5.4201,35.9148],[-5.42,35.9139],[-5.4211,35.9137],[-5.4219,35.9129],[-5.4214,35.913],[-5.4205,35.9123],[-5.4162,35.9124],[-5.4163,35.9136],[-5.4175,35.9143],[-5.4179,35.9141],[-5.4169,35.915],[-5.4168,35.9163],[-5.4177,35.9166],[-5.4185,35.9163],[-5.4191,35.9152]],[[-5.2735,36.292],[-5.274,36.2918],[-5.274,36.2912],[-5.2746,36.2907],[-5.2746,36.29],[-5.2751,36.2898],[-5.275,36.2893],[-5.2742,36.2893],[-5.2741,36.2903],[-5.2733,36.2909],[-5.2735,36.292]],[[-5.28,36.288],[-5.2804,36.288],[-5.2804,36.2874],[-5.2797,36.2872],[-5.2796,36.2878],[-5.28,36.288]],[[-5.2784,36.2871],[-5.278,36.2873],[-5.2782,36.2876],[-5.2793,36.2877],[-5.279,36.2872],[-5.2784,36.2871]],[[-5.2817,36.2885],[-5.2818,36.2888],[-5.2825,36.2886],[-5.2821,36.288],[-5.2817,36.2881],[-5.2817,36.2885]],[[-5.4818,35.9109],[-5.4818,35.91],[-5.4813,35.9097],[-5.4814,35.9105],[-5.4818,35.9109]],[[-5.2816,36.2877],[-5.2813,36.287],[-5.2808,36.2872],[-5.2808,36.2876],[-5.2816,36.2877]],[[-5.2807,36.2886],[-5.2812,36.2886],[-5.2813,36.2882],[-5.2807,36.288],[-5.2805,36.2883],[-5.2807,36.2886]],[[-6.0092,36.1816],[-6.0096,36.1814],[-6.008,36.1814],[-6.0083,36.1817],[-6.0092,36.1816]],[[-5.4342,36.0652],[-5.4347,36.0651],[-5.4346,36.0654],[-5.4353,36.0649],[-5.4344,36.0648],[-5.4342,36.0652]],[[-5.2765,36.2881],[-5.2765,36.2877],[-5.276,36.2882],[-5.2765,36.2881]],[[-6.0064,36.1816],[-6.0066,36.1813],[-6.0058,36.1813],[-6.0064,36.1816]],[[-5.4817,35.9116],[-5.4817,35.911],[-5.4813,35.9114],[-5.4817,35.9116]],[[-5.2892,35.9071],[-5.289,35.9069],[-5.2887,35.9072],[-5.2892,35.9071]],[[-5.3275,35.879],[-5.3278,35.8787],[-5.3274,35.8788],[-5.3275,35.879]],[[-5.4234,35.9123],[-5.4234,35.912],[-5.4234,35.9123]],[[-6.0069,36.1815],[-6.0073,36.1814],[-6.0069,36.1815]],[[-5.3642,36.1357],[-5.3674,36.1426],[-5.3642,36.1357]],[[-5.9814,36.1768],[-5.9813,36.1765],[-5.9814,36.1768]],[[-5.9173,35.7963],[-5.9158,35.7965],[-5.9173,35.7963]],[[-5.2866,35.8918],[-5.2863,35.8915],[-5.2866,35.8918]],[[-5.3288,35.8783],[-5.3291,35.8783],[-5.3288,35.8783]],[[-5.9589,36.1809],[-5.9587,36.1809],[-5.9589,36.1809]]];
+</script>
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const D=Math.PI/180;
+const sin=x=>Math.sin(x*D),cos=x=>Math.cos(x*D),tan=x=>Math.tan(x*D);
+const mod=(x,m)=>((x%m)+m)%m;
+const cl=(x,a,b)=>Math.max(a,Math.min(b,x));
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const num=v=>{if(v==null)return NaN;v=String(v).trim().replace(',','.').replace('−','-');return v===''?NaN:parseFloat(v)};
+const f1=x=>x.toFixed(1).replace('.',',').replace('-','−');
+const f2=x=>x.toFixed(2).replace('.',',').replace('-','−');
+const p3=x=>String(Math.round(mod(x,360)*10)/10).replace('.',',').padStart(3,'0').replace(/^(\d{3}),/,'$1,');
+const rumbo=x=>{const r=Math.round(mod(x,360)*10)/10;const e=Math.floor(r),d=Math.round((r-e)*10);return String(e).padStart(3,'0')+(d?','+d:'')+'°'};
+function dm(v){let a=Math.abs(v),g=Math.floor(a+1e-9),m=Math.round((a-g)*600)/10;if(m>=60){g++;m=0}return g+'° '+m.toFixed(1).replace('.',',').padStart(4,'0')+'′'}
+const latS=v=>dm(v)+' '+(v<0?'S':'N');
+const lonS=v=>{const s=dm(v);return (Math.abs(v)<100?'0':'')+(Math.abs(v)<10?'0':'')+s+' '+(v<0?'W':'E')};
+const sgn=v=>(v>=0?'+':'−')+f1(Math.abs(v));
+const hm=h=>{if(!isFinite(h))return '—';h=mod(h,24);let H=Math.floor(h),M=Math.round((h-H)*60);if(M===60){H=(H+1)%24;M=0}return String(H).padStart(2,'0')+':'+String(M).padStart(2,'0')};
+const durS=h=>{const H=Math.floor(h),M=Math.round((h-H)*60);return H+' h '+String(M).padStart(2,'0')+' min'};
+function parseH(s){s=String(s||'').trim().replace(/h\s*/i,':').replace(/[.,\-]/,':').replace(/m(in)?$/i,'');if(!s)return NaN;
+  if(/^\d{3,4}$/.test(s)){s=s.padStart(4,'0');return +s.slice(0,2)+(+s.slice(2))/60}
+  const p=s.split(/[:\s]+/).map(Number);if(p.some(isNaN))return NaN;return p[0]+(p[1]||0)/60+(p[2]||0)/3600}
+function parseAng(v){v=String(v==null?'':v).trim().replace(/[°º′'"]/g,' ').replace(/,/g,'.');if(!v)return NaN;
+  const neg=/^[-−]/.test(v);v=v.replace(/^[-−+]/,'');const p=v.split(/\s+/).filter(Boolean).map(Number);if(p.some(isNaN))return NaN;
+  const a=p[0]+(p[1]||0)/60;return neg?-a:a}
+const rows=(el,list)=>{el.innerHTML=list.map(r=>'<div><span class="dot" style="background:'+(r[2]||'transparent')+'"></span><dt>'+r[0]+'</dt><dd>'+r[1]+'</dd></div>').join('')};
+
+/* ---------------- Datos de la carta ---------------- */
+// Marco de la carta de enseñanza del Estrecho (Mercator, escala 1:200 000 en 36° 00′)
+const MARCO={n:36+20/60,s:35+40/60,w:-(6+20/60),e:-(5+10/60)};
+const ROSA={lat:36,lon:-(6+5/60),r:6};          // rosa de la carta: centro y radio en minutos de longitud
+const DMCARTA={v:2+50/60,sen:-1,y:2005,va:7,vas:1};  // «2° 50′ W 2005 (7′ E)»
+// Faros, luces y marcas medidos sobre la carta (grados, minutos). t: f faro · p luz de puerto · c marca cardinal · x punto de costa
+const FAROS=[
+ ['Cabo Roche',36,17.83,6,8.34,'f'],['Cabo Trafalgar',36,11.05,6,2.06,'f'],['Barbate (faro)',36,11.29,5,55.37,'f'],
+ ['Barbate (luz roja del espigón)',36,10.85,5,55.48,'p'],['Punta de Gracia (Camarinal)',36,5.48,5,48.54,'f'],
+ ['Punta Paloma',36,3.97,5,43.15,'f'],['Isla de Tarifa',36,0.13,5,36.52,'f'],['Punta Carnero',36,4.71,5,25.50,'f'],
+ ['Algeciras (luz roja del dique)',36,8.98,5,25.62,'p'],['Marca cardinal E (bahía de Algeciras)',36,6.88,5,24.58,'c'],
+ ['Gibraltar (Fl.2s15M)',36,8.05,5,21.72,'p'],['Punta Europa',36,6.58,5,20.60,'f'],['Punta Carbonera',36,14.71,5,18.02,'f'],
+ ['Punta Almina',35,53.96,5,16.77,'f'],['Ceuta (luz verde de la bocana)',35,53.78,5,18.56,'p'],['Cabo Negro',35,41.15,5,16.44,'f'],
+ ['Punta Leona',35,55.44,5,24.03,'x'],['Isla del Perejil',35,54.8,5,25.1,'x'],['Punta Cires',35,54.68,5,28.79,'f'],
+ ['Punta Alcázar',35,50.98,5,33.56,'f'],['Punta Malabata',35,49.14,5,44.89,'f'],['Marca cardinal N (Punta Malabata)',35,49.87,5,45.67,'c'],
+ ['Punta de los Judíos',35,48.10,5,50.80,'x'],['Tánger (luz del espigón)',35,47.53,5,47.52,'p'],['Cabo Espartel',35,47.53,5,55.39,'f'],
+ ['Marca cardinal S (Barbate)',36,9.25,5,56.92,'c'],['Piscifactoría (Barbate)',36,9.20,5,56.10,'x']
+].map(a=>({n:a[0],lat:a[1]+a[2]/60,lon:-(a[3]+a[4]/60),t:a[5]}));
+const corto=n=>n.replace(/ \(.*\)$/,'');
+
+function enTierra(p){let d=false;for(const pol of COSTA){for(let i=0,j=pol.length-1;i<pol.length;j=i++){const a=pol[i],b=pol[j];
+    if((a[1]>p.lat)!==(b[1]>p.lat)&&p.lon<(b[0]-a[0])*(p.lat-a[1])/(b[1]-a[1])+a[0])d=!d}}return d}
+/* ---------------- Navegación plana (carta Mercator, distancias cortas) ---------------- */
+const O={lat:36,lon:-5.75};
+const toXY=p=>({x:(p.lon-O.lon)*60*cos(O.lat),y:(p.lat-O.lat)*60});
+const fromXY=v=>({lat:O.lat+v.y/60,lon:O.lon+v.x/(60*cos(O.lat))});
+const u=b=>({x:sin(b),y:cos(b)});
+const add=(a,b,k)=>({x:a.x+b.x*(k==null?1:k),y:a.y+b.y*(k==null?1:k)});
+// rumbo y distancia loxodrómicos entre dos puntos (latitud media), como en el examen
+function rd(a,b){const dl=(b.lat-a.lat)*60,lm=(a.lat+b.lat)/2,dL=(b.lon-a.lon)*60,ap=dL*cos(lm);
+  return {R:mod(Math.atan2(ap,dl)/D,360),d:Math.hypot(dl,ap),dl,dL,ap,lm}}
+function mueve(a,R,d){const dl=d*cos(R)/60,lat=a.lat+dl,lm=(a.lat+lat)/2;return {lat,lon:a.lon+d*sin(R)/(60*cos(lm))}}
+
+/* ---------------- Corrección total compartida ---------------- */
+const K={ctm:'ct',ct:'-6',dm:'2 50',dms:-1,dmy:'2005',dmv:'7',dmvs:1,dmy1:String(new Date().getFullYear()),des:'0'};
+function ctCarta(){if(K.ctm==='ct')return {ct:parseAng(K.ct),txt:''};
+  const n=(num(K.dmy1)||0)-(num(K.dmy)||0),va=(num(K.dmv)||0)/60*(+K.dmvs),d0=(parseAng(K.dm)||0)*(+K.dms),dmA=d0+n*va,des=parseAng(K.des)||0;
+  return {ct:dmA+des,dmA,des,n,va,d0,txt:'dm '+K.dmy+' = '+sgn(d0)+'° '+(n?(va>=0?'+ ':'− ')+n+' años × '+f1(Math.abs(va*60))+'′ = '+sgn(dmA)+'°':'')+' · Δ = '+sgn(des)+'° → Ct = '+sgn(dmA+des)+'°'}}
+
+/* ---------------- Puntos de entrada reutilizables ---------------- */
+// Un punto se puede dar por coordenadas, respecto de un faro (rumbo y distancia), eligiéndolo en la carta o con la última situación
+const optsFaros=(sel)=>FAROS.map((f,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+f.n+'</option>').join('');
+let ULTIMA=null;            // última situación obtenida (para encadenar ejercicios)
+let PICK=null;              // punto que se está eligiendo en la carta
+const PTS={};
+function ptUI(id,label,def){
+  const P=PTS[id]=Object.assign({src:'coord',lat:36,lon:-5.75,f:1,R:180,d:3},def||{});
+  const el=$(id);
+  const latA=Math.abs(P.lat),lonA=Math.abs(P.lon);
+  el.innerHTML='<div class="f"><span class="l">'+label+'</span><select data-k="src" aria-label="Cómo se da el punto">'+
+    '<option value="coord">Por coordenadas</option><option value="faro">Respecto de un faro</option><option value="pick">Eligiéndolo en la carta</option><option value="ult">La última situación obtenida</option></select></div>'+
+    '<div class="f" data-s="coord"><span class="l">Latitud</span><div class="coord"><input class="s" data-k="lag" type="text" inputmode="numeric" aria-label="Grados de latitud"><i>°</i><input class="n" data-k="lam" type="text" inputmode="decimal" aria-label="Minutos de latitud"><i>′</i><select data-k="las" aria-label="Hemisferio"><option>N</option><option>S</option></select></div></div>'+
+    '<div class="f" data-s="coord"><span class="l">Longitud</span><div class="coord"><input class="s" data-k="log" type="text" inputmode="numeric" aria-label="Grados de longitud"><i>°</i><input class="n" data-k="lom" type="text" inputmode="decimal" aria-label="Minutos de longitud"><i>′</i><select data-k="los" aria-label="Este u oeste"><option>W</option><option>E</option></select></div></div>'+
+    '<div class="f" data-s="faro"><span class="l">Faro</span><select data-k="f">'+optsFaros(P.f)+'</select></div>'+
+    '<div class="f" data-s="faro"><span class="l">Situados al</span><div class="row"><input class="n" data-k="R" type="text" inputmode="decimal" aria-label="Rumbo verdadero desde el faro"><i>° verdadero del faro, a</i><input class="s" data-k="d" type="text" inputmode="decimal" aria-label="Distancia al faro"><i>millas</i></div></div>'+
+    '<div class="f" data-s="pick"><span class="l">En la carta</span><div class="row"><button class="pick" type="button" data-k="pick" aria-pressed="false">Elegir en la carta</button><i data-k="pickt"></i></div></div>'+
+    '<p class="note" data-s="ult">Se usa la situación obtenida en el ejercicio anterior.</p>';
+  const q=k=>el.querySelector('[data-k="'+k+'"]');
+  q('src').value=P.src;q('lag').value=Math.floor(latA);q('lam').value=f1((latA-Math.floor(latA))*60);q('las').value=P.lat<0?'S':'N';
+  q('log').value=Math.floor(lonA);q('lom').value=f1((lonA-Math.floor(lonA))*60);q('los').value=P.lon<0?'W':'E';q('R').value=P.R;q('d').value=String(P.d).replace('.',',');
+  const vis=()=>el.querySelectorAll('[data-s]').forEach(x=>x.hidden=x.dataset.s!==P.src);vis();
+  el.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;
+    if(k==='src'){P.src=e.target.value;vis()}
+    if(['lag','lam','las'].includes(k)){const v=(num(q('lag').value)||0)+(num(q('lam').value)||0)/60;P.lat=q('las').value==='S'?-v:v;P.src='coord'}
+    if(['log','lom','los'].includes(k)){const v=(num(q('log').value)||0)+(num(q('lom').value)||0)/60;P.lon=q('los').value==='W'?-v:v;P.src='coord'}
+    if(k==='f')P.f=+e.target.value; if(k==='R')P.R=num(e.target.value); if(k==='d')P.d=num(e.target.value);
+    refresh()});
+  el.addEventListener('change',e=>{if(e.target.tagName==='SELECT')el.dispatchEvent(new Event('input'))});
+  q('pick').addEventListener('click',()=>{PICK=PICK===id?null:id;document.querySelectorAll('button.pick').forEach(b=>b.setAttribute('aria-pressed',b===q('pick')&&PICK===id));
+    $('k-hint').textContent=PICK?'Toca la carta en el punto que quieres':'Arrastra para mover · rueda o pellizco para acercar · toca la carta para medir'});
+  P.setPick=(lat,lon)=>{P.plat=lat;P.plon=lon;q('pickt').textContent=latS(lat)+' · '+lonS(lon);q('pick').setAttribute('aria-pressed','false');PICK=null};
+}
+function ptGet(id){const P=PTS[id];
+  if(P.src==='faro'){const f=FAROS[P.f];if(!isFinite(P.R)||!isFinite(P.d))return null;return Object.assign(mueve(f,P.R,P.d),{desc:f1(P.d)+' millas al '+rumbo(P.R)+' de '+corto(f.n)})}
+  if(P.src==='pick')return isFinite(P.plat)?{lat:P.plat,lon:P.plon,desc:'punto elegido'}:null;
+  if(P.src==='ult')return ULTIMA?Object.assign({},ULTIMA,{desc:'situación anterior'}):null;
+  return {lat:P.lat,lon:P.lon,desc:'coordenadas'}}
+
+/* ---------------- Formularios de cada ejercicio ---------------- */
+const S={mode:'situacion',
+  lops:[{t:'dist',f:24,f2:0,v:'5'},{t:'dist',f:21,f2:0,v:'5'},{t:'no',f:0,f2:1,v:''}],
+  rv:'',mrc:'',sol:0,
+  rmodo:'pasar',rdest:{f:6},rpasar:'1',rbanda:'er',vb:'',hsal:'',ab:'',abv:'',
+  rc:'',ic:'',legs:[{ra:'084',v:'7',t:'2:20',h:-1},{ra:'',v:'',t:'',h:-1},{ra:'',v:'',t:'',h:-1}],h1:'',
+  ce_rv:'',ce_v:'',ce_t:''};
+const TIPOS=[['no','— sin usar —'],['dv','Demora verdadera a un faro'],['da','Demora de aguja a un faro'],['dist','Distancia a un faro (radar)'],
+  ['enf','Enfilación u oposición de dos faros'],['mar','Marcación a un faro'],['par','Paralelo (latitud conocida)'],['mer','Meridiano (longitud conocida)']];
+const COLS=['--lop1','--lop2','--lop3'];
+function formK(){
+  const m=S.mode,box=$('k-form');let h='';
+  if(m==='situacion'){
+    h='<h3>Líneas de posición</h3><div class="grid">'+S.lops.map((l,i)=>'<div class="card" data-i="'+i+'"><div class="hd"><span class="sw" style="background:var('+COLS[i]+')"></span>Línea '+(i+1)+'</div>'+
+      '<select data-k="t" aria-label="Tipo de línea">'+TIPOS.map(t=>'<option value="'+t[0]+'"'+(t[0]===l.t?' selected':'')+'>'+t[1]+'</option>').join('')+'</select>'+
+      '<div class="row" data-w="f"><select data-k="f" aria-label="Faro">'+optsFaros(l.f)+'</select></div>'+
+      '<div class="row" data-w="f2"><i>y</i><select data-k="f2" aria-label="Segundo faro">'+optsFaros(l.f2)+'</select></div>'+
+      '<div class="row" data-w="v"><input data-k="v" class="n" type="text" inputmode="decimal" value="'+l.v+'" aria-label="Valor"><i data-k="u"></i></div></div>').join('')+'</div>'+
+      '<div class="grid" style="margin-top:8px"><div class="f"><label for="k-rv">Rumbo verdadero</label><div class="row"><input id="k-rv" class="n" type="text" inputmode="decimal" value="'+S.rv+'"><i>° (para las marcaciones)</i></div></div>'+
+      '<div class="f"><label for="k-mrc">o rumbo de aguja</label><div class="row"><input id="k-mrc" class="n" type="text" inputmode="decimal" value="'+S.mrc+'"><i>° (se le suma la Ct)</i></div></div></div>'+
+      '<p class="note">Marcación: ángulo desde la proa, positivo por estribor y negativo por babor (o de 0 a 360° por estribor). Enfilación: los dos faros en línea por el mismo lado; oposición: uno a cada lado. Si escribes la demora de aguja de la enfilación, se calcula la Ct.</p>'+
+      '<div class="row" id="k-solrow" hidden><i>Hay dos cortes:</i><button type="button" id="k-sol">Usar el otro corte</button></div>'+
+      '<div class="row"><button class="go" type="button" id="k-usar">Usar esta situación en el siguiente ejercicio</button></div>';
+  }
+  if(m==='rumbo'){
+    h='<h3>Salida</h3><div class="pt" id="k-p0"></div><h3 style="margin-top:12px">Destino</h3><div class="grid">'+
+      '<div class="f"><label for="k-rmodo">Queremos</label><select id="k-rmodo"><option value="punto">ir a un punto</option><option value="pasar">pasar a X millas de un faro</option></select></div></div>'+
+      '<div class="pt" id="k-p1"></div>'+
+      '<div class="grid" id="k-pasbox"><div class="f"><label for="k-pf">Faro</label><select id="k-pf">'+optsFaros(S.rdest.f)+'</select></div>'+
+      '<div class="f"><span class="l">Pasar a</span><div class="row"><input id="k-pd" class="s" type="text" inputmode="decimal" value="'+S.rpasar+'"><i>millas, dejándolo por</i><select id="k-pb" aria-label="Banda"><option value="er">estribor</option><option value="br">babor</option></select></div></div></div>'+
+      vientoCorr()+
+      '<div class="grid" style="margin-top:8px"><div class="f"><label for="k-vb">Velocidad</label><div class="row"><input id="k-vb" class="n" type="text" inputmode="decimal" value="'+S.vb+'"><i>nudos</i></div></div>'+
+      '<div class="f"><label for="k-hs">Hrb de salida</label><input id="k-hs" class="t" type="text" value="'+S.hsal+'" placeholder="10:00"></div></div>';
+  }
+  if(m==='estima'){
+    h='<h3>Salida</h3><div class="pt" id="k-p0"></div><div class="grid" style="margin-top:6px"><div class="f"><label for="k-hs">Hrb de salida</label><input id="k-hs" class="t" type="text" value="'+S.hsal+'" placeholder="13:10"></div></div>'+
+      '<h3 style="margin-top:12px">Tramos navegados</h3><div class="grid">'+S.legs.map((l,i)=>'<div class="card" data-l="'+i+'"><div class="hd"><span class="sw" style="background:var(--est)"></span>Tramo '+(i+1)+'</div>'+
+      '<div class="row"><select data-k="h" aria-label="Rumbo del tramo"><option value="-1">Ra escrito</option>'+FAROS.map((f,j)=>'<option value="'+j+'"'+(j===l.h?' selected':'')+'>Hacia '+corto(f.n)+'</option>').join('')+'</select></div>'+
+      '<div class="row"><i>Ra</i><input data-k="ra" class="n" type="text" inputmode="decimal" value="'+l.ra+'" aria-label="Rumbo de aguja"><i>° · V</i><input data-k="v" class="s" type="text" inputmode="decimal" value="'+l.v+'" aria-label="Velocidad"><i>kn · durante</i><input data-k="t" class="t" type="text" value="'+l.t+'" aria-label="Tiempo navegado" placeholder="h:mm"></div></div>').join('')+'</div>'+
+      '<p class="note">El tiempo puede ser «2:20» (2 h 20 min) o, si escribes la Hrb de salida, la Hrb del final del tramo con «a 15:30». Si el enunciado dice «ponemos rumbo a un faro», elige «Hacia» ese faro y deja el Ra vacío.</p>'+vientoCorr()+
+      '<div class="row" style="margin-top:8px"><button class="go" type="button" id="k-usar">Usar esta situación en el siguiente ejercicio</button></div>';
+  }
+  if(m==='corriente'){
+    h='<h3>Salida (situación de partida)</h3><div class="pt" id="k-p0"></div>'+
+      '<div class="grid" style="margin-top:6px"><div class="f"><label for="k-crv">Ra navegado</label><div class="row"><input id="k-crv" class="n" type="text" inputmode="decimal" value="'+S.ce_rv+'"><i>° (se le suma la Ct)</i></div></div>'+
+      '<div class="f"><label for="k-cv">Velocidad</label><div class="row"><input id="k-cv" class="n" type="text" inputmode="decimal" value="'+S.ce_v+'"><i>nudos</i></div></div>'+
+      '<div class="f"><label for="k-ct2">Tiempo</label><div class="row"><input id="k-ct2" class="t" type="text" value="'+S.ce_t+'" placeholder="1:30"><i>h:mm</i></div></div></div>'+
+      '<h3 style="margin-top:12px">Situación observada al final</h3><div class="pt" id="k-p1"></div>';
+  }
+  if(m==='medir'){
+    h='<h3>Punto A</h3><div class="pt" id="k-p0"></div><h3 style="margin-top:12px">Punto B</h3><div class="pt" id="k-p1"></div>';
+  }
+  box.innerHTML=h;
+  if($('k-p0'))ptUI('k-p0','Punto',m==='estima'?{lat:35+53/60,lon:-(5+46/60)}:m==='rumbo'?{src:'faro',f:11,R:180,d:4.7}:{lat:36+2/60,lon:-(5+40/60)});
+  if($('k-p1'))ptUI('k-p1','Punto',m==='rumbo'?{src:'faro',f:6,R:180,d:1}:{lat:35+58/60,lon:-(5+30/60)});
+  wireK();
+}
+function vientoCorr(){
+  return '<details style="margin-top:10px"'+(S.ab||S.rc?' open':'')+'><summary>Viento y corriente</summary><div class="grid" style="margin-top:8px">'+
+    '<div class="f"><label for="k-ab">Abatimiento</label><div class="row"><input id="k-ab" class="s" type="text" inputmode="decimal" value="'+S.ab+'"><i>° · viento del</i><input id="k-abv" class="s" type="text" inputmode="decimal" value="'+S.abv+'" aria-label="Dirección de la que viene el viento" style="width:52px"><i>°</i></div></div>'+
+    '<div class="f"><label for="k-rc">Corriente</label><div class="row"><i>Rc</i><input id="k-rc" class="s" type="text" inputmode="decimal" value="'+S.rc+'" style="width:52px"><i>° · Ihc</i><input id="k-ic" class="s" type="text" inputmode="decimal" value="'+S.ic+'"><i>nudos</i></div></div>'+
+    '<p class="note">El viento se da por la dirección de la que viene (N = 0°, E = 90°…): si entra por babor, el barco abate a estribor y al rumbo se le suma el abatimiento. La corriente se da hacia donde va (Rc).</p></div></details>'}
+function wireK(){
+  const box=$('k-form');
+  box.querySelectorAll('.card[data-i]').forEach(c=>{const i=+c.dataset.i,L=S.lops[i];
+    const vis=()=>{const t=L.t;c.querySelector('[data-w="f"]').hidden=t==='no'||t==='par'||t==='mer';c.querySelector('[data-w="f2"]').hidden=t!=='enf';
+      c.querySelector('[data-w="v"]').hidden=t==='no';
+      c.querySelector('[data-k="u"]').textContent={dv:'° verdadera',da:'° de aguja',dist:'millas',enf:'° de aguja (opcional, da la Ct)',mar:'° (+ Er, − Br)',par:'latitud: «36 04,5»',mer:'longitud: «5 40,2» (W)'}[t]||''};
+    vis();
+    c.addEventListener('input',e=>{const k=e.target.dataset.k;if(!k)return;L[k]=k==='f'||k==='f2'?+e.target.value:e.target.value;if(k==='t')vis();refresh()});});
+  box.querySelectorAll('.card[data-l]').forEach(c=>{const L=S.legs[+c.dataset.l];c.addEventListener('input',e=>{const k=e.target.dataset.k;if(k){L[k]=k==='h'?+e.target.value:e.target.value;refresh()}})});
+  const b=(id,k)=>{const el=$(id);if(el){if(el.tagName==='SELECT')el.value=S[k];el.addEventListener('input',()=>{S[k]=el.value;refresh()})}};
+  b('k-rv','rv');b('k-mrc','mrc');b('k-vb','vb');b('k-hs','hsal');b('k-ab','ab');b('k-abv','abv');b('k-rc','rc');b('k-ic','ic');
+  b('k-rmodo','rmodo');b('k-pd','rpasar');b('k-pb','rbanda');b('k-crv','ce_rv');b('k-cv','ce_v');b('k-ct2','ce_t');
+  const pf=$('k-pf');if(pf)pf.addEventListener('input',()=>{S.rdest.f=+pf.value;refresh()});
+  const so=$('k-sol');if(so)so.addEventListener('click',()=>{S.sol=1-S.sol;refresh()});
+  const us=$('k-usar');if(us)us.addEventListener('click',()=>{if(LAST&&LAST.fix){ULTIMA=LAST.fix;us.textContent='Guardada: '+latS(ULTIMA.lat)+' · '+lonS(ULTIMA.lon)}});
+}
+let LAST=null;
+
+/* ---------------- Cálculo de cada ejercicio ---------------- */
+function abatir(rv){ // rumbo de superficie a partir del verdadero y el viento
+  const ab=num(S.ab),wv=num(S.abv);if(!isFinite(ab)||!ab)return {rs:rv,ab:0,txt:''};
+  let lado=1;if(isFinite(wv)){const rel=mod(wv-rv,360);lado=rel>180?1:-1}
+  return {rs:mod(rv+lado*ab,360),ab:lado*ab,txt:'Viento '+(lado>0?'por babor: abate a estribor (+)':'por estribor: abate a babor (−)')}}
+function corrV(){const rc=num(S.rc),ic=num(S.ic);return isFinite(rc)&&isFinite(ic)&&ic>0?{rc,ic,v:{x:ic*sin(rc),y:ic*cos(rc)}}:null}
+function lop(L,i,ct,rv){
+  const f=FAROS[L.f];if(!f||L.t==='no')return null;
+  const col=COLS[i],F=toXY(f);
+  if(L.t==='dv'||L.t==='da'){let dv=parseAng(L.v);if(!isFinite(dv))return null;const da=dv;if(L.t==='da'){if(!isFinite(ct))return {err:'Falta la Ct para pasar la demora de aguja a verdadera.'};dv=mod(dv+ct,360)}
+    return {k:'line',p:F,dir:mod(dv+180,360),col,f,dv,txt:L.t==='da'?'Dv = Da + Ct = '+rumbo(da)+' '+sgn(ct)+'° = '+rumbo(dv):'Dv = '+rumbo(dv),name:'Demora '+rumbo(dv)+' a '+corto(f.n)}}
+  if(L.t==='dist'){const d=num(L.v);if(!(d>0))return null;return {k:'circ',c:F,r:d,col,f,txt:'Círculo de '+f1(d)+' millas alrededor de '+corto(f.n),name:f1(d)+' millas de '+corto(f.n)}}
+  if(L.t==='enf'){const g=FAROS[L.f2];if(!g||g===f)return null;const G=toXY(g),b=Math.atan2(G.x-F.x,G.y-F.y)/D;const dv=mod(b,360);
+    const da=parseAng(L.v);const r={k:'line',p:F,dir:dv,full:true,col,f,g,txt:'Línea que pasa por '+corto(f.n)+' y '+corto(g.n)+' (Dv '+rumbo(dv)+' / '+rumbo(dv+180)+')',name:'Enfilación '+corto(f.n)+'–'+corto(g.n)};
+    if(isFinite(da)){const c1=mod(dv-da+180,360)-180,c2=mod(dv+180-da+180,360)-180;r.ctEnf=Math.abs(c1)<Math.abs(c2)?c1:c2}
+    return r}
+  if(L.t==='mar'){let m=parseAng(L.v);if(!isFinite(m))return null;if(!isFinite(rv))return {err:'Para una marcación hace falta el rumbo verdadero (o el de aguja y la Ct).'};
+    const dv=mod(rv+m,360);return {k:'line',p:F,dir:mod(dv+180,360),col,f,dv,txt:'Dv = Rv + M = '+rumbo(rv)+' '+(m>=0?'+ ':'− ')+f1(Math.abs(m))+'° = '+rumbo(dv),name:'Marcación '+f1(m)+'° a '+corto(f.n)}}
+  if(L.t==='par'){const a=parseAng(L.v);if(!isFinite(a))return null;const p=toXY({lat:a,lon:O.lon});return {k:'line',p,dir:90,full:true,col,txt:'Paralelo de '+latS(a),name:'Latitud '+latS(a)}}
+  if(L.t==='mer'){const a=parseAng(L.v);if(!isFinite(a))return null;const p=toXY({lat:O.lat,lon:-Math.abs(a)});return {k:'line',p,dir:0,full:true,col,txt:'Meridiano de '+lonS(-Math.abs(a)),name:'Longitud '+lonS(-Math.abs(a))}}
+  return null}
+function corta(A,B){ // intersecciones entre dos líneas de posición
+  const L=(a,b)=>{const d1=u(a.dir),d2=u(b.dir),den=d1.x*d2.y-d1.y*d2.x;if(Math.abs(den)<1e-9)return [];const t=((b.p.x-a.p.x)*d2.y-(b.p.y-a.p.y)*d2.x)/den;return [add(a.p,d1,t)]};
+  const LC=(a,c)=>{const d=u(a.dir),fx=a.p.x-c.c.x,fy=a.p.y-c.c.y,bq=fx*d.x+fy*d.y,cq=fx*fx+fy*fy-c.r*c.r,disc=bq*bq-cq;if(disc<0)return [];const s=Math.sqrt(disc);return [add(a.p,d,-bq-s),add(a.p,d,-bq+s)]};
+  const CC=(a,b)=>{const dx=b.c.x-a.c.x,dy=b.c.y-a.c.y,d=Math.hypot(dx,dy);if(d>a.r+b.r||d<Math.abs(a.r-b.r)||d<1e-9)return [];
+    const x=(a.r*a.r-b.r*b.r+d*d)/(2*d),h=Math.sqrt(Math.max(0,a.r*a.r-x*x)),mx=a.c.x+dx*x/d,my=a.c.y+dy*x/d;return [{x:mx+h*dy/d,y:my-h*dx/d},{x:mx-h*dy/d,y:my+h*dx/d}]};
+  if(A.k==='line'&&B.k==='line')return L(A,B);if(A.k==='line')return LC(A,B);if(B.k==='line')return LC(B,A);return CC(A,B)}
+function calcK(){
+  const C=ctCarta(),ct=C.ct,m=S.mode,R={draw:[],res:[],calc:''};
+  $('k-ctnote').textContent=C.txt;
+  if(m==='situacion'){
+    let rv=num(S.rv);const ra=num(S.mrc);if(!isFinite(rv)&&isFinite(ra)&&isFinite(ct))rv=mod(ra+ct,360);
+    const ls=S.lops.map((L,i)=>lop(L,i,ct,rv)).filter(Boolean),ok=ls.filter(l=>!l.err);
+    ls.filter(l=>l.err).forEach(l=>R.calc+='<p class="w">'+l.err+'</p>');
+    ok.forEach(l=>{R.draw.push(l);R.calc+='<p>'+l.txt+'</p>';if(l.ctEnf!=null){R.res.push(['Ct por la enfilación',sgn(l.ctEnf)+'° ('+(l.ctEnf>=0?'NE':'NW')+')',css('--mag')]);R.calc+='<p class="fm">Ct = Dv de la enfilación − Da = '+sgn(l.ctEnf)+'°</p>'}});
+    if(ok.length>=2){let cs=corta(ok[0],ok[1]);
+      // de los cortes de una demora con otra línea, solo valen los que quedan del lado del observador
+      const valido=(l,p)=>l.k!=='line'||l.full||((p.x-l.p.x)*sin(l.dir)+(p.y-l.p.y)*cos(l.dir))>-1e-6;
+      cs=cs.filter(p=>valido(ok[0],p)&&valido(ok[1],p));
+      cs.sort((a,b)=>enTierra(fromXY(a))-enTierra(fromXY(b)));   // primero el corte que queda en el mar
+      $('k-solrow').hidden=cs.length<2;
+      if(!cs.length)R.calc+='<p class="w">Las dos primeras líneas no se cortan. Revisa los datos.</p>';
+      else{const P=cs[Math.min(S.sol,cs.length-1)],fix=fromXY(P);R.fix=fix;R.draw.push({k:'fix',p:P,label:'So',alt:cs.length>1?cs[1-Math.min(S.sol,1)]:null});
+        R.res.push(['Situación observada',latS(fix.lat)+'<br>'+lonS(fix.lon),css('--fix')]);
+        if(ok[2]){const third=ok[2];let dd;if(third.k==='circ')dd=Math.abs(Math.hypot(P.x-third.c.x,P.y-third.c.y)-third.r);else{const d=u(third.dir);dd=Math.abs((P.x-third.p.x)*d.y-(P.y-third.p.y)*d.x)}
+          R.res.push(['Distancia de la 3.ª línea al corte',f2(dd)+' millas',css(COLS[2])]);R.calc+='<p class="fm">La tercera línea pasa a '+f2(dd)+' millas del corte de las dos primeras'+(dd<0.3?': las tres se cortan prácticamente en el mismo punto.':': el triángulo que forman indica el error.')+'</p>'}
+        FAROS.filter(f=>f.t==='f').map(f=>Object.assign(rd(fix,f),{f})).sort((a,b)=>a.d-b.d).slice(0,3).forEach(x=>R.res.push(['Demora y distancia a '+corto(x.f.n),rumbo(x.R)+' · '+f1(x.d)+' mi']));
+        R.calc+='<p class="r">So: '+latS(fix.lat)+' · '+lonS(fix.lon)+'</p>'}}
+    else R.calc+='<p class="fm">Rellena al menos dos líneas de posición.</p>';
+  }
+  if(m==='rumbo'){
+    $('k-p1').hidden=S.rmodo!=='punto';$('k-pasbox').hidden=S.rmodo!=='pasar';
+    const A=ptGet('k-p0');if(!A){R.calc='<p class="w">Falta el punto de salida.</p>';return R}
+    const PA=toXY(A);R.draw.push({k:'pt',p:PA,label:'Salida'});
+    let B,Rs,dist,txt='';
+    if(S.rmodo==='pasar'){const f=FAROS[S.rdest.f],r=num(S.rpasar),x=rd(A,f);if(!(r>0)||r>=x.d){R.calc='<p class="w">La distancia a pasar tiene que ser menor que la distancia al faro ('+f1(x.d)+' millas).</p>';return R}
+      const al=Math.asin(r/x.d)/D;Rs=mod(x.R+(S.rbanda==='er'?-al:al),360);dist=Math.sqrt(x.d*x.d-r*r);B=fromXY(add(PA,u(Rs),dist));
+      R.draw.push({k:'circ',c:toXY(f),r,col:'--lop3',dashed:true});R.draw.push({k:'pt',p:toXY(B),label:'Pasa a '+f1(r)+"'"});
+      txt='<p class="fm">Demora y distancia al faro: '+rumbo(x.R)+' · '+f2(x.d)+' millas</p><p class="fm">sen α = r / d = '+f1(r)+' / '+f2(x.d)+' → α = '+f1(al)+'°</p><p>Rumbo = demora '+(S.rbanda==='er'?'− α (el faro queda por estribor)':'+ α (el faro queda por babor)')+' = '+rumbo(Rs)+'</p>'}
+    else{B=ptGet('k-p1');if(!B){R.calc='<p class="w">Falta el punto de destino.</p>';return R}const x=rd(A,B);Rs=x.R;dist=x.d;R.draw.push({k:'pt',p:toXY(B),label:'Destino'});
+      txt='<p class="fm">Δl = '+f1(x.dl)+'′ · ΔL = '+f1(x.dL)+'′ · lm = '+latS(x.lm)+'</p><p class="fm">A = ΔL · cos lm = '+f1(x.ap)+' millas</p><p>R = arctg (A / Δl) = '+rumbo(Rs)+' · D = √(Δl² + A²) = '+f2(dist)+' millas</p>'}
+    // corriente: rumbo de superficie para que el efectivo vaya al destino
+    const cv=corrV(),vb=num(S.vb);let rsup=Rs,ve=vb;
+    if(cv&&vb>0){const d=u(Rs),uc=d.x*cv.v.x+d.y*cv.v.y,disc=uc*uc-(cv.ic*cv.ic)+vb*vb;
+      if(disc<0){txt+='<p class="w">Con esa corriente el barco no puede mantener ese rumbo efectivo.</p>'}else{const k=uc+Math.sqrt(disc);const w={x:d.x*k-cv.v.x,y:d.y*k-cv.v.y};rsup=mod(Math.atan2(w.x,w.y)/D,360);ve=k;
+        txt+='<p class="fm">Corriente '+rumbo(cv.rc)+' · '+f1(cv.ic)+' kn: el rumbo efectivo debe ser '+rumbo(Rs)+'. Triángulo de velocidades:</p><p>Rumbo de superficie = '+rumbo(rsup)+' · Ve = '+f2(ve)+' kn</p>';
+        R.draw.push({k:'tri',p:PA,re:Rs,ve,rs:rsup,vb,cv})}}
+    // abatimiento: el rumbo verdadero que hay que poner para hacer ese rumbo de superficie
+    let rv=rsup;const ab=num(S.ab),wv=num(S.abv);
+    if(isFinite(ab)&&ab){let lado=1;if(isFinite(wv)){const rel=mod(wv-rsup,360);lado=rel>180?1:-1}rv=mod(rsup-lado*ab,360);
+      txt+='<p class="fm">Viento '+(lado>0?'por babor: abate a estribor, se corrige hacia babor':'por estribor: abate a babor, se corrige hacia estribor')+'</p><p>Rv = Rs '+(lado>0?'− ':'+ ')+f1(ab)+'° = '+rumbo(rv)+'</p>'}
+    R.res.push(['Rumbo '+(cv||isFinite(ab)&&ab?'efectivo':'verdadero')+' al destino',rumbo(Rs),css('--est')]);
+    if(rv!==Rs)R.res.push(['Rumbo verdadero a gobernar',rumbo(rv),css('--est')]);
+    if(isFinite(ct)){const ra=mod(rv-ct,360);R.res.push(['Rumbo de aguja (Ra)',rumbo(ra),css('--mag')]);txt+='<p class="fm">Ra = Rv − Ct = '+rumbo(rv)+' '+(ct>=0?'− ':'+ ')+f1(Math.abs(ct))+'°</p><p class="r">Ra = '+rumbo(ra)+'</p>'}
+    R.res.push(['Distancia',f2(dist)+' millas']);
+    if(ve>0){const t=dist/ve;R.res.push(['Tiempo',durS(t)]);const hs=parseH(S.hsal);if(isFinite(hs))R.res.push(['Hrb de llegada',hm(hs+t)]);txt+='<p class="fm">t = D / V = '+f2(dist)+' / '+f2(ve)+' = '+durS(t)+'</p>'}
+    R.draw.push({k:'leg',a:PA,b:toXY(B),label:rumbo(Rs)+' · '+f1(dist)+"'"});R.calc=txt;R.fix=B;
+  }
+  if(m==='estima'){
+    const A=ptGet('k-p0');if(!A){R.calc='<p class="w">Falta la situación de salida.</p>';return R}
+    let P=toXY(A),t0=parseH(S.hsal),h=t0,txt='',tot=0;R.draw.push({k:'pt',p:P,label:'Salida'});
+    const cv=corrV();
+    S.legs.forEach((L,i)=>{let ra=parseAng(L.ra);const v=num(L.v);let t=NaN;const ts=String(L.t||'').trim();
+      if(L.h>=0&&isFinite(ct)){const f=FAROS[L.h],x=rd(fromXY(P),f);ra=mod(x.R-ct,360);txt+='<p class="fm">Tramo '+(i+1)+': rumbo hacia '+corto(f.n)+' = Rv '+rumbo(x.R)+' ('+f2(x.d)+' millas) → Ra '+rumbo(ra)+'</p>'}
+      if(/^a\s/i.test(ts)&&isFinite(h)){t=mod(parseH(ts.slice(2))-h,24)}else t=parseH(ts);
+      if(!isFinite(ra)||!isFinite(v)||!isFinite(t))return;
+      if(!isFinite(ct)){txt+='<p class="w">Falta la Ct.</p>';return}
+      const rv=mod(ra+ct,360),A2=abatir(rv),d=v*t;let Q=add(P,u(A2.rs),d);
+      txt+='<p class="fm">Tramo '+(i+1)+': Rv = Ra + Ct = '+rumbo(ra)+' '+sgn(ct)+'° = '+rumbo(rv)+(A2.ab?' · '+A2.txt+' → Rs = '+rumbo(A2.rs):'')+'</p><p>D = V · t = '+f1(v)+' × '+durS(t)+' = '+f2(d)+' millas</p>';
+      if(cv){const Qc=add(Q,cv.v,t);const e=Math.hypot(Qc.x-P.x,Qc.y-P.y)/t,re=mod(Math.atan2(Qc.x-P.x,Qc.y-P.y)/D,360);
+        R.draw.push({k:'leg',a:P,b:Q,label:'Rs '+rumbo(A2.rs),thin:true});R.draw.push({k:'vec',a:Q,b:Qc,label:'corriente'});
+        txt+='<p class="fm">Corriente '+rumbo(cv.rc)+' · '+f1(cv.ic)+' kn × '+durS(t)+' = '+f2(cv.ic*t)+' millas</p><p>Rumbo efectivo '+rumbo(re)+' · Ve = '+f2(e)+' kn</p>';
+        R.res.push(['Tramo '+(i+1)+': rumbo y velocidad efectivos',rumbo(re)+' · '+f2(e)+' kn',css('--cur')]);Q=Qc}
+      R.draw.push({k:'leg',a:P,b:Q,label:(cv?'Re ':'R ')+rumbo(Math.atan2(Q.x-P.x,Q.y-P.y)/D)+' · '+f1(Math.hypot(Q.x-P.x,Q.y-P.y))+"'"});
+      P=Q;tot+=t;if(isFinite(h))h+=t;});
+    const fin=fromXY(P);R.fix=fin;R.draw.push({k:'est',p:P,label:'Se'});
+    R.res.unshift(['Situación estimada',latS(fin.lat)+'<br>'+lonS(fin.lon),css('--fix')]);
+    if(tot)R.res.push(['Tiempo total',durS(tot)]);if(isFinite(t0)&&tot)R.res.push(['Hrb de llegada',hm(t0+tot)]);
+    R.calc=txt+'<p class="r">Se: '+latS(fin.lat)+' · '+lonS(fin.lon)+'</p>';
+  }
+  if(m==='corriente'){
+    const A=ptGet('k-p0'),B=ptGet('k-p1');if(!A||!B){R.calc='<p class="w">Faltan la salida o la situación observada.</p>';return R}
+    const ra=parseAng(S.ce_rv),v=num(S.ce_v),t=parseH(S.ce_t);
+    if(!isFinite(ra)||!isFinite(v)||!(t>0)||!isFinite(ct)){R.calc='<p class="fm">Escribe el Ra, la velocidad, el tiempo y la Ct.</p>';return R}
+    const rv=mod(ra+ct,360),A2=abatir(rv),PA=toXY(A),Se=add(PA,u(A2.rs),v*t),So=toXY(B),c={x:So.x-Se.x,y:So.y-Se.y},dc=Math.hypot(c.x,c.y),rc=mod(Math.atan2(c.x,c.y)/D,360);
+    R.draw.push({k:'pt',p:PA,label:'Salida'},{k:'leg',a:PA,b:Se,label:'Rs '+rumbo(A2.rs)},{k:'est',p:Se,label:'Se'},{k:'fix',p:So,label:'So'},{k:'vec',a:Se,b:So,label:'corriente'});
+    R.res.push(['Rumbo de la corriente (Rc)',rumbo(rc),css('--cur')],['Intensidad horaria (Ihc)',f2(dc/t)+' nudos',css('--cur')],['Deriva total',f2(dc)+' millas en '+durS(t)]);
+    const re=rd(A,B);R.res.push(['Rumbo y velocidad efectivos',rumbo(re.R)+' · '+f2(re.d/t)+' kn']);
+    R.calc='<p class="fm">Rv = Ra + Ct = '+rumbo(rv)+(A2.ab?' · Rs = '+rumbo(A2.rs):'')+'</p><p>Situación estimada sin corriente: '+f2(v*t)+' millas al '+rumbo(A2.rs)+'</p><p class="fm">La corriente es lo que va de la Se a la So:</p><p class="r">Rc = '+rumbo(rc)+' · Ihc = '+f2(dc)+' / '+f2(t)+' h = '+f2(dc/t)+' kn</p>';
+  }
+  if(m==='medir'){
+    const A=ptGet('k-p0'),B=ptGet('k-p1');if(!A||!B){R.calc='<p class="w">Faltan los puntos.</p>';return R}
+    const x=rd(A,B);R.draw.push({k:'pt',p:toXY(A),label:'A'},{k:'pt',p:toXY(B),label:'B'},{k:'leg',a:toXY(A),b:toXY(B),label:rumbo(x.R)+' · '+f1(x.d)+"'"});
+    R.res.push(['A',latS(A.lat)+'<br>'+lonS(A.lon)],['B',latS(B.lat)+'<br>'+lonS(B.lon)],['Rumbo verdadero de A a B',rumbo(x.R),css('--est')],['Distancia',f2(x.d)+' millas',css('--est')],['Diferencia de latitud',f1(Math.abs(x.dl))+'′ '+(x.dl>=0?'N':'S')],['Diferencia de longitud',f1(Math.abs(x.dL))+'′ '+(x.dL>=0?'E':'W')]);
+    if(isFinite(ct))R.res.push(['Rumbo de aguja (con la Ct)',rumbo(x.R-ct),css('--mag')]);
+    R.calc='<p class="fm">Δl = '+f1(x.dl)+'′ · ΔL = '+f1(x.dL)+'′ · latitud media '+latS(x.lm)+'</p><p class="fm">Apartamiento A = ΔL · cos lm = '+f2(x.ap)+' millas</p><p>R = arctg (A / Δl) = '+rumbo(x.R)+'</p><p class="r">D = √(Δl² + A²) = '+f2(x.d)+' millas</p>';
+  }
+  return R}
+
+/* ---------------- Dibujo de la carta ---------------- */
+const KV={clat:36,clon:-5.75,ppm:0,w:0,h:0,dpr:1};
+const merc=la=>Math.log(Math.tan(Math.PI/4+la*D/2))/D;
+const X=lon=>KV.w/2+(lon-KV.clon)*60*KV.ppm, Y=lat=>KV.h/2-(merc(lat)-merc(KV.clat))*60*KV.ppm;
+const XYp=p=>{const g=fromXY(p);return [X(g.lon),Y(g.lat)]};
+const toGeo=(x,y)=>({lon:KV.clon+(x-KV.w/2)/(60*KV.ppm),lat:(()=>{const m=merc(KV.clat)+(KV.h/2-y)/(60*KV.ppm);return (2*Math.atan(Math.exp(m*D))-Math.PI/2)/D})()});
+function fitK(){const W=KV.w,H=KV.h;if(!W)return;KV.clon=(MARCO.w+MARCO.e)/2;KV.clat=(MARCO.n+MARCO.s)/2;
+  const ml=46,mr=16,mt=24,mb=16;KV.ppm=Math.min((W-ml-mr)/((MARCO.e-MARCO.w)*60),(H-mt-mb)/((merc(MARCO.n)-merc(MARCO.s))*60));
+  KV.clon+=((mr-ml)/2)/(60*KV.ppm);const m=merc(KV.clat)+((mb-mt)/2)/(60*KV.ppm);KV.clat=(2*Math.atan(Math.exp(m*D))-Math.PI/2)/D;}
+function drawK(R){
+  const cv=$('k-cv'),view=$('k-view'),W=view.clientWidth,H=view.clientHeight;if(!W||!H)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=W*dpr;cv.height=H*dpr}
+  const cambio=KV.w!==W||KV.h!==H;KV.w=W;KV.h=H;if(!KV.ppm||cambio&&!KV.tocada)fitK();
+  const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const C={sea:css('--sea'),land:css('--land'),coast:css('--coast'),grid:css('--grid'),ink:css('--chartink'),mag:css('--mag'),fix:css('--fix'),est:css('--est'),cur:css('--cur')};
+  g.fillStyle=C.sea;g.fillRect(0,0,W,H);
+  if(MIA.img){const c=MIA.cal||provisional();g.save();
+    const sx=60*KV.ppm*c.lonPx,sy=-60*KV.ppm*c.mPx,ox=X(c.lon0),oy=KV.h/2-(c.m0-merc(KV.clat))*60*KV.ppm;
+    g.setTransform(dpr*sx,0,0,dpr*sy,dpr*ox,dpr*oy);g.drawImage(MIA.img,0,0);g.restore();g.setTransform(dpr,0,0,dpr,0,0)}
+  if(!MIA.img){
+  // tierra
+  g.fillStyle=C.land;g.strokeStyle=C.coast;g.lineWidth=1;g.lineJoin='round';
+  g.beginPath();COSTA.forEach(p=>{p.forEach((q,i)=>{const x=X(q[0]),y=Y(q[1]);i?g.lineTo(x,y):g.moveTo(x,y)});g.closePath()});g.fill('evenodd');g.stroke();
+  // retícula cada 10′ y marco con escala de minutos
+  const x0=X(MARCO.w),x1=X(MARCO.e),y0=Y(MARCO.n),y1=Y(MARCO.s);
+  g.strokeStyle=C.grid;g.lineWidth=.7;g.setLineDash([]);
+  for(let m=0;m<=70;m+=10){const x=X(MARCO.w+m/60);g.beginPath();g.moveTo(x,y0);g.lineTo(x,y1);g.stroke()}
+  for(let m=0;m<=40;m+=10){const y=Y(MARCO.s+m/60);g.beginPath();g.moveTo(x0,y);g.lineTo(x1,y);g.stroke()}
+  const bw=Math.max(5,Math.min(9,KV.ppm*.5));
+  g.lineWidth=1;g.strokeStyle=C.ink;g.strokeRect(x0,y0,x1-x0,y1-y0);g.strokeRect(x0-bw,y0-bw,x1-x0+2*bw,y1-y0+2*bw);
+  g.fillStyle=C.ink;
+  for(let m=0;m<70;m++)if(m%2===0){const a=X(MARCO.w+m/60),b=X(MARCO.w+(m+1)/60);g.fillRect(a,y0-bw,b-a,bw);g.fillRect(a,y1,b-a,bw)}
+  for(let m=0;m<40;m++)if(m%2===0){const a=Y(MARCO.s+m/60),b=Y(MARCO.s+(m+1)/60);g.fillRect(x0-bw,b,bw,a-b);g.fillRect(x1,b,bw,a-b)}
+  g.font='500 10.5px "IBM Plex Mono",monospace';g.textBaseline='bottom';g.textAlign='center';
+  const pas=KV.ppm>9?5:10;
+  for(let m=0;m<=70;m+=pas){const lon=MARCO.w+m/60,x=X(lon),gr=Math.floor(-lon+1e-9),mi=Math.round((-lon-gr)*60);g.fillText(mi===0?gr+'°W':mi+'′',x,y0-bw-2)}
+  g.textAlign='right';g.textBaseline='middle';
+  for(let m=0;m<=40;m+=pas){const lat=MARCO.s+m/60,y=Y(lat),gr=Math.floor(lat+1e-9),mi=Math.round((lat-gr)*60);g.fillText(mi===0?gr+'°N':mi+'′',x0-bw-3,y)}
+  // rosa de la carta (verdadera + magnética interior)
+  const rx=X(ROSA.lon),ry=Y(ROSA.lat),rr=ROSA.r*KV.ppm,dmA=DMCARTA.sen*DMCARTA.v+(new Date().getFullYear()-DMCARTA.y)*DMCARTA.va/60*DMCARTA.vas;
+  if(rr>30){g.strokeStyle=C.mag;g.fillStyle=C.mag;g.lineWidth=1;g.beginPath();g.arc(rx,ry,rr,0,7);g.stroke();g.beginPath();g.arc(rx,ry,rr*.72,0,7);g.stroke();
+    for(let a=0;a<360;a+=(rr>90?2:10)){const L=a%30===0?.09:a%10===0?.06:.035;g.beginPath();g.moveTo(rx+sin(a)*rr,ry-cos(a)*rr);g.lineTo(rx+sin(a)*rr*(1-L),ry-cos(a)*rr*(1-L));g.stroke()}
+    g.font='500 '+Math.max(8,Math.min(11,rr/9))+'px "IBM Plex Mono",monospace';g.textAlign='center';g.textBaseline='middle';
+    if(rr>60)for(let a=0;a<360;a+=30)g.fillText(String(a).padStart(3,'0'),rx+sin(a)*rr*.84,ry-cos(a)*rr*.84);
+    g.beginPath();g.moveTo(rx,ry-rr*.72);g.lineTo(rx,ry+rr*.72);g.moveTo(rx-rr*.72,ry);g.lineTo(rx+rr*.72,ry);g.stroke();
+    // norte magnético
+    g.lineWidth=2;g.beginPath();g.moveTo(rx,ry);g.lineTo(rx+sin(dmA)*rr*.7,ry-cos(dmA)*rr*.7);g.stroke();
+    if(rr>70){g.save();g.translate(rx,ry);g.rotate(-Math.PI/2+dmA*D);g.textAlign='left';g.fillText('2° 50′ W 2005 (7′ E)',rr*.12,-6);g.restore()}}
+  }
+  // faros y marcas
+  const lbl=KV.ppm>10;
+  if(!MIA.img||MIA.faros)FAROS.forEach(f=>{const x=X(f.lon),y=Y(f.lat);if(x<-40||x>W+40||y<-40||y>H+40)return;
+    if(f.t==='f'||f.t==='p'){g.fillStyle=C.mag;g.save();g.translate(x,y);g.rotate(f.t==='p'?.9:-.6);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(5,9,0,15);g.quadraticCurveTo(-5,9,0,0);g.fill();g.restore();
+      g.fillStyle=C.ink;star(g,x,y,f.t==='f'?4.2:3.2)}
+    else if(f.t==='c'){g.fillStyle=C.ink;g.beginPath();g.moveTo(x,y-7);g.lineTo(x-3.5,y-1);g.lineTo(x+3.5,y-1);g.closePath();g.fill();g.beginPath();g.arc(x,y+2,2.2,0,7);g.fill()}
+    else{g.strokeStyle=C.ink;g.lineWidth=1.2;g.beginPath();g.arc(x,y,2.6,0,7);g.stroke()}
+    if(lbl||f.t==='f'){g.font=(f.t==='f'?'600 11px ':'500 10px ')+'"IBM Plex Sans",sans-serif';g.textAlign='left';g.textBaseline='middle';
+      halo(g,(f.t==='f'||lbl)?corto(f.n):'',x+7,y-6,C.ink,C.sea)}});
+  // elementos del ejercicio
+  if(R)R.draw.forEach(e=>{
+    if(e.k==='line'){const c=css(e.col),d=u(e.dir),P=e.p;g.strokeStyle=c;g.lineWidth=2;g.setLineDash(e.full?[8,5]:[]);
+      const a=XYp(e.full?add(P,d,-60):P),b=XYp(add(P,d,60));g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);
+      if(e.name){const m=XYp(add(P,d,Math.min(4,60)));g.font='600 11px "IBM Plex Sans",sans-serif';g.textAlign='left';halo(g,e.name,m[0]+5,m[1]-5,c,C.sea)}}
+    if(e.k==='circ'){const c=css(e.col),q=XYp(e.c),r=e.r*KV.ppm*cos(O.lat)/cos(fromXY(e.c).lat)*1;g.strokeStyle=c;g.lineWidth=2;g.setLineDash(e.dashed?[6,5]:[]);
+      g.beginPath();for(let a=0;a<=360;a+=3){const p=XYp(add(e.c,u(a),e.r));a?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1])}g.stroke();g.setLineDash([]);
+      if(e.name){const p=XYp(add(e.c,u(35),e.r));g.font='600 11px "IBM Plex Sans",sans-serif';g.textAlign='left';halo(g,e.name,p[0]+4,p[1]-4,c,C.sea)}}
+    if(e.k==='leg'||e.k==='vec'){const a=XYp(e.a),b=XYp(e.b),c=e.k==='vec'?C.cur:C.est;g.strokeStyle=c;g.fillStyle=c;g.lineWidth=e.thin?1.3:2.4;g.setLineDash(e.thin?[5,4]:[]);
+      g.beginPath();g.moveTo(a[0],a[1]);g.lineTo(b[0],b[1]);g.stroke();g.setLineDash([]);arrow(g,a,b,e.k==='vec'?8:10);
+      if(e.label&&Math.hypot(b[0]-a[0],b[1]-a[1])>40){g.font='600 11px "IBM Plex Mono",monospace';g.textAlign='center';halo(g,e.label,(a[0]+b[0])/2+8,(a[1]+b[1])/2-8,c,C.sea)}}
+    if(e.k==='tri'){const P=e.p,dur=Math.min(1,2/Math.max(e.ve,.1));const A=XYp(P),Bv=XYp(add(P,u(e.rs),e.vb*dur)),Cv=XYp(add(add(P,u(e.rs),e.vb*dur),e.cv.v,dur));
+      g.lineWidth=1.6;g.strokeStyle=C.est;g.setLineDash([4,3]);g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(Bv[0],Bv[1]);g.stroke();g.strokeStyle=C.cur;g.beginPath();g.moveTo(Bv[0],Bv[1]);g.lineTo(Cv[0],Cv[1]);g.stroke();g.setLineDash([])}
+    if(e.k==='pt'){const q=XYp(e.p);g.fillStyle=C.est;g.beginPath();g.arc(q[0],q[1],4,0,7);g.fill();g.font='600 11.5px "IBM Plex Sans",sans-serif';g.textAlign='left';halo(g,e.label,q[0]+7,q[1]+10,C.est,C.sea)}
+    if(e.k==='fix'){const q=XYp(e.p);if(e.alt){const z=XYp(e.alt);g.strokeStyle=C.fix;g.globalAlpha=.45;g.lineWidth=1.5;g.beginPath();g.arc(z[0],z[1],6,0,7);g.stroke();g.globalAlpha=1}
+      g.strokeStyle=C.fix;g.fillStyle=C.fix;g.lineWidth=2.2;g.beginPath();g.arc(q[0],q[1],8,0,7);g.stroke();g.beginPath();g.arc(q[0],q[1],2.4,0,7);g.fill();
+      g.font='700 12.5px "IBM Plex Sans",sans-serif';g.textAlign='left';halo(g,e.label,q[0]+11,q[1]-9,C.fix,C.sea)}
+    if(e.k==='est'){const q=XYp(e.p);g.strokeStyle=C.fix;g.lineWidth=2;g.strokeRect(q[0]-6,q[1]-6,12,12);g.fillStyle=C.fix;g.fillRect(q[0]-1.5,q[1]-1.5,3,3);
+      g.font='700 12.5px "IBM Plex Sans",sans-serif';g.textAlign='left';halo(g,e.label,q[0]+10,q[1]-9,C.fix,C.sea)}});
+  // medida con el compás: último toque
+  if(MEDIR){const q=[X(MEDIR.lon),Y(MEDIR.lat)];g.strokeStyle=C.ink;g.lineWidth=1.2;g.beginPath();g.moveTo(q[0]-7,q[1]);g.lineTo(q[0]+7,q[1]);g.moveTo(q[0],q[1]-7);g.lineTo(q[0],q[1]+7);g.stroke();
+    if(R&&R.fix){const f=[X(R.fix.lon),Y(R.fix.lat)];g.setLineDash([3,3]);g.beginPath();g.moveTo(f[0],f[1]);g.lineTo(q[0],q[1]);g.stroke();g.setLineDash([])}}
+}
+function star(g,x,y,r){g.beginPath();for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;g.lineTo(x+Math.cos(a)*rr,y+Math.sin(a)*rr)}g.closePath();g.fill()}
+function halo(g,t,x,y,c,bg){if(!t)return;g.lineWidth=3.5;g.strokeStyle=bg;g.lineJoin='round';g.strokeText(t,x,y);g.fillStyle=c;g.fillText(t,x,y)}
+function arrow(g,a,b,s){const an=Math.atan2(b[1]-a[1],b[0]-a[0]);g.beginPath();g.moveTo(b[0],b[1]);g.lineTo(b[0]-s*Math.cos(an-.4),b[1]-s*Math.sin(an-.4));g.lineTo(b[0]-s*Math.cos(an+.4),b[1]-s*Math.sin(an+.4));g.closePath();g.fill()}
+
+/* interacción con la carta: mover, acercar, tocar */
+let MEDIR=null;
+const MIA={img:null,cal:null,paso:0,p:[],faros:true};
+const CRUCES=[{lat:36+10/60,lon:-6,t:'36° 10′ N con 6° 00′ W'},{lat:35+50/60,lon:-5.5,t:'35° 50′ N con 5° 30′ W'}];
+(function(){const cv=$('k-cv'),ptrs=new Map();let drag=null,pinch=null,moved=false;
+  const pos=e=>{const r=cv.getBoundingClientRect();return {x:e.clientX-r.left,y:e.clientY-r.top}};
+  const zoomAt=(x,y,k)=>{KV.tocada=true;const g=toGeo(x,y);KV.ppm=cl(KV.ppm*k,1.5,120);const g2=toGeo(x,y);KV.clon+=g.lon-g2.lon;KV.clat+=g.lat-g2.lat;redraw()};
+  cv.addEventListener('pointerdown',e=>{try{cv.setPointerCapture(e.pointerId)}catch(_){}const p=pos(e);ptrs.set(e.pointerId,p);moved=false;
+    if(ptrs.size===1)drag={p,clat:KV.clat,clon:KV.clon};else if(ptrs.size===2){const [a,b]=[...ptrs.values()];pinch={d:Math.hypot(a.x-b.x,a.y-b.y),ppm:KV.ppm};drag=null}});
+  cv.addEventListener('pointermove',e=>{const p=pos(e);const g0=toGeo(p.x,p.y);$('k-read').textContent=latS(g0.lat)+' · '+lonS(g0.lon);
+    if(!ptrs.has(e.pointerId))return;ptrs.set(e.pointerId,p);
+    if(pinch&&ptrs.size===2){const [a,b]=[...ptrs.values()],d=Math.hypot(a.x-b.x,a.y-b.y);const m={x:(a.x+b.x)/2,y:(a.y+b.y)/2};const k=pinch.ppm*d/pinch.d/KV.ppm;zoomAt(m.x,m.y,k);moved=true;return}
+    if(drag){const dx=p.x-drag.p.x,dy=p.y-drag.p.y;if(Math.hypot(dx,dy)>4)moved=true;if(!moved)return;
+      KV.tocada=true;KV.clon=drag.clon-dx/(60*KV.ppm);const m=merc(drag.clat)+dy/(60*KV.ppm);KV.clat=(2*Math.atan(Math.exp(m*D))-Math.PI/2)/D;redraw()}});
+  const up=e=>{const p=pos(e);if(ptrs.size===1&&!moved){const g0=toGeo(p.x,p.y);
+      if(MIA.paso){const c=MIA.cal||provisional();const u0=(p.x-X(c.lon0))/(60*KV.ppm*c.lonPx),v0=(p.y-(KV.h/2-(c.m0-merc(KV.clat))*60*KV.ppm))/(-60*KV.ppm*c.mPx);
+        MIA.p.push({u:u0,v:v0});if(MIA.paso===1){MIA.paso=2;$('k-calt').textContent='Ahora toca el cruce de '+CRUCES[1].t+'.'}
+        else{const a=MIA.p[0],b=MIA.p[1],A=CRUCES[0],B=CRUCES[1];const lonPx=(B.lon-A.lon)/(b.u-a.u),mPx=(merc(B.lat)-merc(A.lat))/(b.v-a.v);
+          if(isFinite(lonPx)&&isFinite(mPx)&&lonPx>0&&mPx<0){MIA.cal={lonPx,mPx,lon0:A.lon-a.u*lonPx,m0:merc(A.lat)-a.v*mPx};$('k-calt').textContent='Carta calibrada. Comprueba que los faros del simulador caen sobre los de tu carta.'}
+          else $('k-calt').textContent='No se ha podido calibrar: toca los cruces en el orden indicado.';MIA.paso=0;MIA.p=[]}redraw()}
+      else if(PICK&&PTS[PICK]){PTS[PICK].setPick(g0.lat,g0.lon);$('k-hint').textContent='Arrastra para mover · rueda o pellizco para acercar · toca la carta para medir';refresh()}
+      else{MEDIR=g0;showMedir()}}
+    ptrs.delete(e.pointerId);if(ptrs.size<2)pinch=null;if(!ptrs.size)drag=null};
+  cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);pinch=null;drag=null});
+  cv.addEventListener('wheel',e=>{e.preventDefault();const p=pos(e);zoomAt(p.x,p.y,Math.exp(-e.deltaY*.0015))},{passive:false});
+  $('k-mas').addEventListener('click',()=>zoomAt(KV.w/2,KV.h/2,1.4));$('k-menos').addEventListener('click',()=>zoomAt(KV.w/2,KV.h/2,1/1.4));
+  $('k-fit').addEventListener('click',()=>{KV.tocada=false;fitK();redraw()});
+})();
+function provisional(){const w=MIA.img.naturalWidth,h=MIA.img.naturalHeight;return {lonPx:(MARCO.e-MARCO.w)/w,mPx:-(merc(MARCO.n)-merc(MARCO.s))/h,lon0:MARCO.w,m0:merc(MARCO.n)}}
+$('k-img').addEventListener('change',e=>{const f=e.target.files&&e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),im=new Image();
+  im.onload=()=>{MIA.img=im;MIA.cal=null;$('k-cal').disabled=false;$('k-quita').disabled=false;$('k-calt').textContent='Imagen cargada. Pulsa «Calibrar» y toca los dos cruces que se piden.';KV.tocada=false;fitK();redraw()};im.src=url});
+$('k-cal').addEventListener('click',()=>{if(!MIA.img)return;MIA.paso=1;MIA.p=[];$('k-calt').textContent='Acerca la carta y toca el cruce de '+CRUCES[0].t+'.'});
+$('k-quita').addEventListener('click',()=>{MIA.img=null;MIA.cal=null;MIA.paso=0;$('k-cal').disabled=true;$('k-quita').disabled=true;$('k-calt').textContent='';$('k-img').value='';redraw()});
+$('k-mios').addEventListener('change',e=>{MIA.faros=e.target.checked;redraw()});
+function showMedir(){if(!MEDIR)return;let t=latS(MEDIR.lat)+' · '+lonS(MEDIR.lon);
+  const ref=LAST&&LAST.fix;if(ref){const x=rd(ref,MEDIR);t+='  ·  desde la situación: '+rumbo(x.R)+' · '+f1(x.d)+' mi'}
+  $('k-read').textContent=t;redraw()}
+
+/* ---------------- MAREAS ---------------- */
+const MS={mode:'altura',tb:'07:21',hb:'0,33',tp:'13:36',hp:'3,33',t:'10:00',q:'',e:'p',sc:'5',p:'1018',cal:''};
+function calcM(){
+  const tb=parseH(MS.tb),tp=parseH(MS.tp),hb=num(MS.hb),hp=num(MS.hp),sc=num(MS.sc),P=num(MS.p),cal=num(MS.cal);
+  const R={res:[],calc:'',ok:false};
+  if(![tb,tp,hb,hp].every(isFinite)){R.calc='<p class="fm">Escribe la hora y la altura de la bajamar y de la pleamar.</p>';return R}
+  let Dh=tp-tb;if(Dh<-12)Dh+=24;if(Dh>12)Dh-=24;const sube=Dh>0,dur=Math.abs(Dh),A=hp-hb;
+  const corrP=isFinite(P)?(1013-P)/100:0;
+  R.ok=true;Object.assign(R,{tb,tp,hb,hp,sube,dur,A,corrP,sc});
+  const alt=t=>{let dt=t-(sube?tb:tp);dt=mod(dt+12,24)-12;const fr=cl(dt/dur,0,1);return sube?hb+A*(1-Math.cos(Math.PI*fr))/2:hp-A*(1-Math.cos(Math.PI*fr))/2};
+  R.alt=alt;
+  let c='<p class="fm">Duración de la '+(sube?'creciente':'vaciante')+' = '+durS(dur)+' · amplitud = '+f2(hp)+' − '+f2(hb)+' = '+f2(A)+' m</p>';
+  if(isFinite(P))c+='<p class="fm">Corrección por presión = (1013 − '+f1(P)+') cm = '+(corrP>=0?'+':'−')+f2(Math.abs(corrP))+' m</p>';
+  if(MS.mode==='altura'||MS.mode==='extremo'){let t,h;
+    if(MS.mode==='extremo'){t=MS.e==='p'?tp:tb;h=MS.e==='p'?hp:hb;c+='<p>Altura de la '+(MS.e==='p'?'pleamar':'bajamar')+' (Anuario) = '+f2(h)+' m</p>'}
+    else{t=parseH(MS.t);if(!isFinite(t)){R.calc=c+'<p class="w">Escribe la hora pedida.</p>';return R}h=alt(t);let dt=mod(t-(sube?tb:tp)+12,24)-12;
+      c+='<p class="fm">Tiempo desde la '+(sube?'bajamar':'pleamar')+' = '+durS(Math.abs(dt))+(Math.abs(dt)>dur+1e-6||dt<0?' (fuera del intervalo: se toma el extremo)':'')+'</p>'+
+        '<p class="fm">h = '+(sube?'hBM + A·(1 − cos(180°·t/D))/2':'hPM − A·(1 − cos(180°·t/D))/2')+'</p><p>h = '+f2(h)+' m</p>';
+      // regla de los doceavos para comparar
+      const fr=cl(Math.abs(dt)/dur,0,1)*6,acc=[0,1,3,6,9,11,12];const k=Math.floor(fr),dz=(acc[Math.min(k,6)]+(k<6?(acc[k+1]-acc[k])*(fr-k):0))/12;
+      R.doce=sube?hb+A*dz:hp-A*dz;c+='<p class="fm">Con la regla de los doceavos saldría '+f2(R.doce)+' m</p>'}
+    const sm=(isFinite(sc)?sc:0)+h+corrP;R.t=t;R.h=h;R.sm=sm;
+    R.res.push(['Altura de la marea',f2(h)+' m',css('--lop1')]);if(isFinite(P))R.res.push(['Corrección por presión',(corrP>=0?'+':'−')+f2(Math.abs(corrP))+' m']);
+    R.res.push(['Sonda en el momento',f2(sm)+' m',css('--fix')]);if(isFinite(cal))R.res.push(['Agua bajo la quilla',f2(sm-cal)+' m',sm-cal>=0?css('--lop2'):css('--fix')]);
+    c+='<p class="fm">Sonda del momento = sonda de la carta + altura de la marea + corrección por presión</p><p class="r">Sm = '+f2(isFinite(sc)?sc:0)+' + '+f2(h)+' '+(corrP>=0?'+ ':'− ')+f2(Math.abs(corrP))+' = '+f2(sm)+' m</p>'}
+  if(MS.mode==='hora'){const q=num(MS.q);if(!isFinite(q)){R.calc=c+'<p class="w">Escribe la sonda buscada.</p>';return R}
+    const h=q-(isFinite(sc)?sc:0)-corrP;c+='<p>Altura de marea necesaria = '+f2(q)+' − '+f2(isFinite(sc)?sc:0)+' '+(corrP>=0?'− ':'+ ')+f2(Math.abs(corrP))+' = '+f2(h)+' m</p>';
+    const fr=sube?(h-hb)/A:(hp-h)/A;
+    if(fr<0||fr>1){R.calc=c+'<p class="w">Esa altura no se alcanza entre esta bajamar y esta pleamar.</p>';return R}
+    const t=(sube?tb:tp)+Math.acos(1-2*fr)/Math.PI*dur;R.t=t;R.h=h;R.sm=q;
+    c+='<p class="fm">cos(180°·t/D) = 1 − 2·'+(sube?'(h − hBM)':'(hPM − h)')+' / A → t = '+durS(Math.acos(1-2*fr)/Math.PI*dur)+' después de la '+(sube?'bajamar':'pleamar')+'</p><p class="r">Hora = '+hm(t)+'</p>';
+    R.res.push(['Altura de marea necesaria',f2(h)+' m',css('--lop1')],['Hora',hm(t),css('--fix')])}
+  R.calc=c;return R}
+function drawM(R){
+  const cv=$('m-cv'),view=$('m-view'),W=view.clientWidth,H=view.clientHeight;if(!W||!H)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const C={sea:css('--sea'),ink:css('--chartink'),grid:css('--grid'),l1:css('--lop1'),fix:css('--fix'),land:css('--land'),coast:css('--coast'),mute:css('--mute'),shoal:css('--shoal'),l2:css('--lop2')};
+  g.fillStyle=C.sea;g.fillRect(0,0,W,H);if(!R.ok)return;
+  // curva (izquierda) y columna de agua (derecha)
+  const estrecho=W<560,cw=estrecho?W:W*.62,mx=46,my=34,gx=mx,gw=cw-mx-14,gy=my,gh=(estrecho?H*.58:H)-my-46;
+  const t0=Math.min(R.tb,R.tp)-R.dur*.5,t1=t0+R.dur*2;const hmax=Math.max(R.hp,R.hb)+.4,hmin=Math.min(0,R.hb)-.2;
+  const tx=t=>gx+(t-t0)/(t1-t0)*gw,hy=h=>gy+gh-(h-hmin)/(hmax-hmin)*gh;
+  g.strokeStyle=C.grid;g.lineWidth=.7;g.font='500 10.5px "IBM Plex Mono",monospace';g.fillStyle=C.ink;g.textAlign='right';g.textBaseline='middle';
+  for(let h=Math.ceil(hmin);h<=hmax;h+=1){g.beginPath();g.moveTo(gx,hy(h));g.lineTo(gx+gw,hy(h));g.stroke();g.fillText(h+' m',gx-6,hy(h))}
+  g.textAlign='center';g.textBaseline='top';
+  const paso=gw<330?4:2;
+  for(let t=Math.ceil(t0);t<=t1;t+=1){if(Math.round(t)%paso)continue;g.beginPath();g.moveTo(tx(t),gy);g.lineTo(tx(t),gy+gh);g.stroke();g.fillText(hm(t),tx(t),gy+gh+6)}
+  g.strokeStyle=C.l1;g.lineWidth=2.4;g.beginPath();
+  for(let i=0;i<=200;i++){const t=t0+(t1-t0)*i/200;const ph=((t-(R.sube?R.tb:R.tp))/R.dur);const h=(R.hb+R.hp)/2+(R.sube?-1:1)*R.A/2*Math.cos(Math.PI*ph);i?g.lineTo(tx(t),hy(h)):g.moveTo(tx(t),hy(h))}g.stroke();
+  [[R.tb,R.hb,'BM'],[R.tp,R.hp,'PM']].forEach(([t,h,n])=>{g.fillStyle=C.l1;g.beginPath();g.arc(tx(t),hy(h),4,0,7);g.fill();g.font='600 11px "IBM Plex Sans",sans-serif';g.textBaseline='bottom';halo(g,n+' '+hm(t)+' · '+f2(h)+' m',tx(t),hy(h)-7,C.l1,C.sea)});
+  if(isFinite(R.t)){g.strokeStyle=C.fix;g.setLineDash([4,3]);g.lineWidth=1.4;g.beginPath();g.moveTo(tx(R.t),gy);g.lineTo(tx(R.t),gy+gh);g.moveTo(gx,hy(R.h));g.lineTo(tx(R.t),hy(R.h));g.stroke();g.setLineDash([]);
+    g.fillStyle=C.fix;g.beginPath();g.arc(tx(R.t),hy(R.h),5,0,7);g.fill();g.textBaseline='top';halo(g,hm(R.t)+' · '+f2(R.h)+' m',tx(R.t),hy(R.h)+8,C.fix,C.sea)}
+  g.font='600 12px "IBM Plex Sans",sans-serif';g.textAlign='left';g.textBaseline='top';g.fillStyle=C.ink;g.fillText(estrecho?'Curva de marea':'Curva de marea (alturas sobre el cero hidrográfico)',gx,8);
+  // columna de agua
+  if(isFinite(R.sm)){const cx=estrecho?gx:cw+20,cw2=estrecho?gw:W-cx-18,sc=isFinite(R.sc)?R.sc:0,tot=Math.max(R.sm,sc)+1.2,top=estrecho?H*.58+30:gy+10,bot=estrecho?H-16:gy+gh,k=(bot-top)/tot;
+    const ycero=bot-sc*k,ysup=bot-R.sm*k;
+    g.fillStyle=C.shoal;g.fillRect(cx,ysup,cw2,bot-ysup);
+    g.fillStyle=C.land;g.fillRect(cx,bot,cw2,12);g.strokeStyle=C.coast;g.beginPath();g.moveTo(cx,bot);g.lineTo(cx+cw2,bot);g.stroke();
+    g.strokeStyle=C.ink;g.setLineDash([5,4]);g.beginPath();g.moveTo(cx,ycero);g.lineTo(cx+cw2,ycero);g.stroke();g.setLineDash([]);
+    g.strokeStyle=C.l1;g.lineWidth=2;g.beginPath();g.moveTo(cx,ysup);g.lineTo(cx+cw2,ysup);g.stroke();
+    const cal=num(MS.cal);if(isFinite(cal)){const yq=ysup+cal*k;g.fillStyle=C.ink;g.beginPath();g.moveTo(cx+cw2*.25,ysup-8);g.lineTo(cx+cw2*.75,ysup-8);g.lineTo(cx+cw2*.62,yq);g.lineTo(cx+cw2*.38,yq);g.closePath();g.fill()}
+    g.font='500 10.5px "IBM Plex Mono",monospace';g.textAlign='left';g.textBaseline='middle';
+    const tag=(y,t,c)=>halo(g,t,cx+4,y,c,C.sea);
+    tag(ysup-10,'superficie',C.l1);tag(ycero-9,'cero hidrográfico',C.ink);
+    g.textAlign='right';g.strokeStyle=C.ink;g.lineWidth=1;
+    const cota=(ya,yb,t,x)=>{g.beginPath();g.moveTo(x,ya);g.lineTo(x,yb);g.stroke();g.textAlign='right';halo(g,t,x-4,(ya+yb)/2,C.ink,C.sea)};
+    cota(bot,ycero,'Sc '+f1(sc),cx+cw2-6);cota(ycero,ysup,'marea '+f2(R.sm-sc),cx+cw2-6);
+    g.textAlign='left';g.font='600 12px "IBM Plex Sans",sans-serif';g.fillStyle=C.ink;g.textBaseline='top';g.fillText('Sonda en el momento '+f2(R.sm)+' m',cx,estrecho?top-24:8)}
+}
+
+/* ---------------- AGUJA ---------------- */
+const AS={dm:'2 50',dms:-1,y0:'2005',va:'7',vas:1,y1:String(new Date().getFullYear()),des:'-3',ra:'345',rv:'',cu:'N 80 W'};
+function calcA(){const n=(num(AS.y1)||0)-(num(AS.y0)||0),va=(num(AS.va)||0)/60*(+AS.vas),d0=(parseAng(AS.dm)||0)*(+AS.dms),dmA=d0+n*va,des=parseAng(AS.des)||0,ct=dmA+des;
+  const ra=parseAng(AS.ra),rv=parseAng(AS.rv);const R={ct,dmA,des,res:[],calc:''};
+  const s=v=>dm(Math.abs(v))+' '+(v>=0?'NE (+)':'NW (−)');
+  if(n&&va)R.res.push(['Variación en '+n+' años',dm(Math.abs(n*va))+(n*va>=0?' al E':' al W'),css('--lop1')]);
+  R.res.push(['Declinación actual (dm)',s(dmA),css('--lop1')],['Desvío (Δ)',s(des),css('--mag')],['Corrección total (Ct)',s(ct)+' = '+sgn(ct)+'°',css('--fix')]);
+  let c=(n&&va?'<p class="fm">dm actual = dm de la carta + años × variación (al E suma, al W resta)</p><p>dm = '+sgn(d0)+'° '+(n*va>=0?'+ ':'− ')+n+' × '+f1(Math.abs(va*60))+'′ = '+s(dmA)+'</p>':'')+
+    '<p class="fm">Ct = dm + Δ, cada una con su signo</p><p class="r">Ct = '+sgn(dmA)+'° '+(des>=0?'+ ':'− ')+f1(Math.abs(des))+'° = '+sgn(ct)+'°</p>';
+  if(isFinite(ra)){const v=mod(ra+ct,360);R.rv=v;R.res.push(['Rumbo verdadero (Rv = Ra + Ct)',rumbo(v),css('--est')]);c+='<p>Rv = Ra + Ct = '+rumbo(ra)+' '+sgn(ct)+'° = '+rumbo(v)+'</p>'}
+  if(isFinite(rv)){const a=mod(rv-ct,360);R.res.push(['Rumbo de aguja (Ra = Rv − Ct)',rumbo(a),css('--mag')]);c+='<p>Ra = Rv − Ct = '+rumbo(rv)+' '+(ct>=0?'− ':'+ ')+f1(Math.abs(ct))+'° = '+rumbo(a)+'</p>';R.rv=rv}
+  const m=String(AS.cu||'').toUpperCase().replace(/\s+/g,'').match(/^([NS])(\d+(?:[.,]\d+)?)([EW])$/);
+  if(m){const a=num(m[2]),circ=m[1]==='N'?(m[3]==='E'?a:360-a):(m[3]==='E'?180-a:180+a);R.res.push(['Rumbo cuadrantal '+m[1]+' '+f1(a)+'° '+m[3],'= '+rumbo(circ)+' circular']);
+    c+='<p class="fm">'+(m[1]==='N'?(m[3]==='E'?'N…E: el mismo valor':'N…W: 360° − valor'):(m[3]==='E'?'S…E: 180° − valor':'S…W: 180° + valor'))+'</p>'}
+  R.calc=c;return R}
+function drawA(R){
+  const cv=$('a-cv'),view=$('a-view'),W=view.clientWidth,H=view.clientHeight;if(!W||!H)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const C={sea:css('--sea'),ink:css('--chartink'),mag:css('--mag'),l1:css('--lop1'),fix:css('--fix'),est:css('--est'),grid:css('--grid')};
+  g.fillStyle=C.sea;g.fillRect(0,0,W,H);
+  const top=46,cx=W/2,cy=top+(H-top)/2,Rr=Math.max(40,Math.min(W,H-top)/2-36);
+  const P=(a,r)=>[cx+sin(a)*r,cy-cos(a)*r];
+  const mx=Math.max(Math.abs(R.dmA),Math.abs(R.ct),Math.abs(R.des)),k=mx>0&&mx<=12?3:1;
+  g.strokeStyle=C.grid;g.lineWidth=1;g.beginPath();g.arc(cx,cy,Rr,0,7);g.stroke();
+  for(let a=0;a<360;a+=5){const p=P(a,Rr),q=P(a,Rr-(a%30===0?12:5));g.beginPath();g.moveTo(p[0],p[1]);g.lineTo(q[0],q[1]);g.stroke()}
+  g.font='500 11px "IBM Plex Mono",monospace';g.fillStyle=C.ink;g.textAlign='center';g.textBaseline='middle';[['E',90],['S',180],['W',270]].forEach(t=>{const p=P(t[1],Rr+14);g.fillText(t[0],p[0],p[1])});
+  const north=(a,c,t,len)=>{const p=P(a,len);g.strokeStyle=c;g.lineWidth=2.2;g.beginPath();g.moveTo(cx,cy);g.lineTo(p[0],p[1]);g.stroke();const q=P(a,len+14);g.font='600 13px "IBM Plex Sans",sans-serif';halo(g,t,q[0],q[1],c,C.sea)};
+  const arcN=(a0,a1,rad,c,t)=>{if(Math.abs(a1-a0)<.05)return;g.strokeStyle=c;g.lineWidth=2.6;g.beginPath();g.arc(cx,cy,rad,(Math.min(a0,a1)-90)*D,(Math.max(a0,a1)-90)*D);g.stroke();const p=P((a0+a1)/2,rad+12);g.font='600 12px "IBM Plex Sans",sans-serif';halo(g,t,p[0],p[1],c,C.sea)};
+  if(isFinite(R.rv)){const p=P(R.rv,Rr*.95);g.strokeStyle=C.est;g.lineWidth=3;g.beginPath();g.moveTo(cx,cy);g.lineTo(p[0],p[1]);g.stroke();const q=P(R.rv,Rr+28);g.font='600 12px "IBM Plex Sans",sans-serif';halo(g,'Proa · Rv '+rumbo(R.rv),q[0],q[1],C.est,C.sea)}
+  north(0,C.ink,'Nv',Rr*.9);north(R.dmA*k,C.l1,'Nm',Rr*.76);north(R.ct*k,C.mag,'Na',Rr*.62);
+  arcN(0,R.ct*k,Rr*.26,C.fix,'Ct');arcN(0,R.dmA*k,Rr*.4,C.l1,'dm');arcN(R.dmA*k,R.ct*k,Rr*.52,C.mag,'Δ');
+  $('a-cap').textContent=(R.ct>=0?'Ct al NE: lo verdadero es mayor que lo de aguja.':'Ct al NW: lo verdadero es menor que lo de aguja.')+(k>1?' Los ángulos entre los nortes están dibujados al triple.':'');
+}
+
+/* ---------------- DERROTAS ---------------- */
+const DS={mode:'ab',a:{lat:36,lon:-7},b:{lat:35+52.3/60,lon:-(8+2.4/60)},r:'239',dist:'125'};
+function coordUI(id,P){const el=$(id),la=Math.abs(P.lat),lo=Math.abs(P.lon);
+  el.innerHTML='<input class="s" data-k="lag" type="text" inputmode="numeric" aria-label="Grados de latitud" value="'+Math.floor(la)+'"><i>°</i><input class="n" data-k="lam" type="text" inputmode="decimal" aria-label="Minutos de latitud" value="'+f1((la-Math.floor(la))*60)+'"><i>′</i><select data-k="las" aria-label="N o S"><option>N</option><option'+(P.lat<0?' selected':'')+'>S</option></select>'+
+    '<span style="width:8px"></span><input class="s" data-k="log" type="text" inputmode="numeric" aria-label="Grados de longitud" value="'+Math.floor(lo)+'"><i>°</i><input class="n" data-k="lom" type="text" inputmode="decimal" aria-label="Minutos de longitud" value="'+f1((lo-Math.floor(lo))*60)+'"><i>′</i><select data-k="los" aria-label="E o W"><option'+(P.lon<0?' selected':'')+'>W</option><option'+(P.lon>=0?' selected':'')+'>E</option></select>';
+  const q=k=>el.querySelector('[data-k="'+k+'"]');
+  el.addEventListener('input',()=>{const a=(num(q('lag').value)||0)+(num(q('lam').value)||0)/60,b=(num(q('log').value)||0)+(num(q('lom').value)||0)/60;P.lat=q('las').value==='S'?-a:a;P.lon=q('los').value==='W'?-b:b;refresh()});
+  el.addEventListener('change',()=>el.dispatchEvent(new Event('input')))}
+function calcD(){const a=DS.a,R={res:[],calc:''};const mp=l=>Math.log(Math.tan(Math.PI/4+l*D/2))/D*60;let b;
+  if(DS.mode==='estima'){const r=parseAng(DS.r),d=num(DS.dist);if(!isFinite(r)||!isFinite(d))return R;
+    const dl=d*cos(r)/60,lb=a.lat+dl,dpsi=mp(lb)-mp(a.lat),q=Math.abs(dl)>1e-9?(dl*60)/dpsi:cos(a.lat),dL=Math.abs(cos(r))<1e-9?d*sin(r)/cos(a.lat):tan(r)*dpsi;
+    b={lat:lb,lon:a.lon+dL/60};const lm=(a.lat+lb)/2,ap=d*sin(r);
+    R.calc='<p class="fm">Δl = D · cos R = '+f1(d)+' × '+cos(r).toFixed(4).replace('.',',')+' = '+f1(dl*60)+'′</p><p class="fm">A = D · sen R = '+f1(ap)+' millas</p>'+
+      '<p class="fm">Con latitudes aumentadas: ΔL = Δφ · tg R = '+f1(dpsi)+' × '+tan(r).toFixed(4).replace('.',',')+' = '+f1(dL)+'′</p><p class="fm">(con la latitud media saldría ΔL = A / cos lm = '+f1(ap/cos(lm))+'′)</p><p class="r">Llegada: '+latS(b.lat)+' · '+lonS(b.lon)+'</p>';
+    R.res.push(['Situación de llegada',latS(b.lat)+'<br>'+lonS(b.lon),css('--fix')])}
+  else b=DS.b;
+  const dL=(b.lon-a.lon)*60,dl=(b.lat-a.lat)*60,dpsi=mp(b.lat)-mp(a.lat),q=Math.abs(dl)>1e-9?dl/dpsi:cos(a.lat),Rl=mod(Math.atan2(dL,dpsi)/D,360),Dl=Math.hypot(dl,q*dL);
+  const lm=(a.lat+b.lat)/2,Rlm=mod(Math.atan2(dL*cos(lm),dl)/D,360),Dlm=Math.hypot(dl,dL*cos(lm));
+  const cosD=sin(a.lat)*sin(b.lat)+cos(a.lat)*cos(b.lat)*cos(dL/60),Do=Math.acos(cl(cosD,-1,1))/D*60;
+  const Ri=mod(Math.atan2(sin(dL/60)*cos(b.lat),cos(a.lat)*sin(b.lat)-sin(a.lat)*cos(b.lat)*cos(dL/60))/D,360);
+  Object.assign(R,{a,b,Rl,Dl,Do,Ri});
+  if(DS.mode==='ab'){R.res.push(['Rumbo loxodrómico (directo)',rumbo(Rl),css('--est')],['Distancia loxodrómica',f1(Dl)+' millas',css('--est')],
+      ['Con la latitud media',rumbo(Rlm)+' · '+f1(Dlm)+' millas'],['Rumbo inicial ortodrómico',rumbo(Ri),css('--mag')],['Distancia ortodrómica',f1(Do)+' millas',css('--mag')],['Ahorro de la ortodrómica',f1(Dl-Do)+' millas']);
+    R.calc='<p class="fm">Δl = '+f1(dl)+'′ · ΔL = '+f1(dL)+'′</p><p class="fm">Diferencia de latitudes aumentadas Δφ = '+f1(dpsi)+'′</p><p>R = arctg (ΔL / Δφ) = '+rumbo(Rl)+'</p><p>D = Δl / cos R = '+f1(Dl)+' millas</p>'+
+      '<p class="fm">Con la latitud media ('+latS(lm)+'): A = ΔL · cos lm = '+f1(dL*cos(lm))+' millas → R = '+rumbo(Rlm)+', D = '+f1(Dlm)+'</p>'+
+      '<p class="fm">Ortodrómica: cos D = sen lA · sen lB + cos lA · cos lB · cos ΔL</p><p class="r">D = '+f1(Do)+' millas · Ri = '+rumbo(Ri)+'</p>'}
+  return R}
+function drawD(R){
+  const cv=$('d-cv'),view=$('d-view'),W=view.clientWidth,H=view.clientHeight;if(!W||!H)return;
+  const dpr=Math.min(window.devicePixelRatio||1,2);cv.width=W*dpr;cv.height=H*dpr;const g=cv.getContext('2d');g.setTransform(dpr,0,0,dpr,0,0);
+  const C={sea:css('--sea'),ink:css('--chartink'),grid:css('--grid'),mag:css('--mag'),est:css('--est'),fix:css('--fix')};
+  g.fillStyle=C.sea;g.fillRect(0,0,W,H);if(!R.a||!R.b)return;
+  const a=R.a,b=R.b,top=40;
+  const N=60;const gc=[];const A3=[cos(a.lat)*cos(a.lon),cos(a.lat)*sin(a.lon),sin(a.lat)],B3=[cos(b.lat)*cos(b.lon),cos(b.lat)*sin(b.lon),sin(b.lat)];
+  const w=Math.acos(cl(A3[0]*B3[0]+A3[1]*B3[1]+A3[2]*B3[2],-1,1));
+  for(let i=0;i<=N;i++){const t=i/N;let v;if(w<1e-9)v=A3;else{const s1=Math.sin((1-t)*w)/Math.sin(w),s2=Math.sin(t*w)/Math.sin(w);v=[A3[0]*s1+B3[0]*s2,A3[1]*s1+B3[1]*s2,A3[2]*s1+B3[2]*s2]}
+    gc.push({lat:Math.atan2(v[2],Math.hypot(v[0],v[1]))/D,lon:Math.atan2(v[1],v[0])/D})}
+  const lats=gc.map(p=>p.lat),lons=gc.map(p=>p.lon);let la0=Math.min(...lats),la1=Math.max(...lats),lo0=Math.min(...lons),lo1=Math.max(...lons);
+  const padLa=Math.max(.3,(la1-la0)*.18),padLo=Math.max(.3,(lo1-lo0)*.18);la0-=padLa;la1+=padLa;lo0-=padLo;lo1+=padLo;
+  const m0=merc(la0),m1=merc(la1),sx=(W-60)/(lo1-lo0),sy=(H-top-40)/(m1-m0),s=Math.min(sx,sy);
+  const cxo=(W-(lo1-lo0)*s)/2,cyo=top+(H-top-30-(m1-m0)*s)/2;
+  const px=p=>[cxo+(p.lon-lo0)*s,cyo+(m1-merc(p.lat))*s];
+  // retícula con pasos razonables
+  const span=Math.max(lo1-lo0,la1-la0),st=[.25,.5,1,2,5,10,20].find(v=>span/v<=8)||30;
+  g.strokeStyle=C.grid;g.lineWidth=.7;g.font='500 10.5px "IBM Plex Mono",monospace';g.fillStyle=C.ink;
+  for(let lo=Math.ceil(lo0/st)*st;lo<=lo1;lo+=st){const x=px({lat:la0,lon:lo})[0];g.beginPath();g.moveTo(x,cyo);g.lineTo(x,cyo+(m1-m0)*s);g.stroke();g.textAlign='center';g.textBaseline='top';g.fillText(lonS(lo).replace(/,0′/,'′'),x,cyo+(m1-m0)*s+4)}
+  for(let la=Math.ceil(la0/st)*st;la<=la1;la+=st){const y=px({lat:la,lon:lo0})[1];g.beginPath();g.moveTo(cxo,y);g.lineTo(cxo+(lo1-lo0)*s,y);g.stroke();g.textAlign='left';g.textBaseline='bottom';g.fillText(latS(la).replace(/,0′/,'′'),cxo+3,y-2)}
+  g.strokeStyle=C.mag;g.lineWidth=2.4;g.beginPath();gc.forEach((p,i)=>{const q=px(p);i?g.lineTo(q[0],q[1]):g.moveTo(q[0],q[1])});g.stroke();
+  const A=px(a),B=px(b);g.strokeStyle=C.est;g.lineWidth=2.4;g.beginPath();g.moveTo(A[0],A[1]);g.lineTo(B[0],B[1]);g.stroke();g.fillStyle=C.est;arrow(g,A,B,10);
+  [[A,'A'],[B,'B']].forEach(([q,t])=>{g.fillStyle=C.fix;g.beginPath();g.arc(q[0],q[1],5,0,7);g.fill();g.font='700 13px "IBM Plex Sans",sans-serif';g.textAlign='left';g.textBaseline='bottom';halo(g,t,q[0]+8,q[1]-6,C.fix,C.sea)});
+}
+
+/* ---------------- Refresco, pestañas y eventos ---------------- */
+let dirty=true,TAB='carta';const refresh=()=>{dirty=true};const redraw=()=>{dirty=true};
+function update(){
+  if(TAB==='carta'){const R=calcK();LAST=R;rows($('k-res'),R.res);$('k-calc').innerHTML=R.calc;drawK(R)}
+  if(TAB==='mareas'){$('m-tbox').hidden=MS.mode!=='altura';$('m-qbox').hidden=MS.mode!=='hora';$('m-ebox').hidden=MS.mode!=='extremo';const R=calcM();rows($('m-res'),R.res);$('m-calc').innerHTML=R.calc;drawM(R)}
+  if(TAB==='aguja'){const R=calcA();rows($('a-res'),R.res);$('a-calc').innerHTML=R.calc;drawA(R)}
+  if(TAB==='derrota'){$('d-bbox').hidden=DS.mode!=='ab';$('d-ebox').hidden=DS.mode!=='estima';const R=calcD();rows($('d-res'),R.res);$('d-calc').innerHTML=R.calc;drawD(R)}
+}
+function go2(t,modo){if(!['carta','mareas','aguja','derrota'].includes(t))t='carta';TAB=t;
+  document.querySelectorAll('.tab').forEach(el=>el.hidden=el.id!=='tab-'+t);
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+  if(t==='carta'&&modo&&[...$('k-mode').options].some(o=>o.value===modo)&&modo!==S.mode){S.mode=modo;$('k-mode').value=modo;formK()}
+  if(t==='mareas'&&modo&&['altura','hora','extremo'].includes(modo)){MS.mode=modo;$('m-mode').value=modo}
+  try{const h=t+(modo?'-'+modo:'');if(location.hash.slice(1)!==h&&!(t==='carta'&&!modo))history.replaceState(null,'','#'+h)}catch(_){}
+  refresh()}
+function goHash(){const h=location.hash.slice(1),i=h.indexOf('-'),t=i<0?h:h.slice(0,i),m=i<0?null:h.slice(i+1);go2(t||'carta',m)}
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>go2(b.dataset.tab)));
+window.addEventListener('hashchange',goHash);
+$('k-mode').addEventListener('change',e=>{S.mode=e.target.value;S.sol=0;formK();refresh()});
+// corrección total
+const kb=(id,k,ev)=>{const el=$(id);if(el.tagName==='SELECT')el.value=K[k];else el.value=typeof K[k]==='number'?String(K[k]).replace('.',','):K[k];el.addEventListener(ev||'input',()=>{K[k]=el.value;if(k==='ctm'){$('k-ctbox').hidden=K.ctm!=='ct';$('k-dmbox').hidden=K.ctm!=='dm'}refresh()})};
+kb('k-ctm','ctm','change');kb('k-ct','ct');kb('k-dm','dm');kb('k-dms','dms','change');kb('k-dmy','dmy');kb('k-dmv','dmv');kb('k-dmvs','dmvs','change');kb('k-dmy1','dmy1');kb('k-des','des');
+// mareas
+[['m-tb','tb'],['m-hb','hb'],['m-tp','tp'],['m-hp','hp'],['m-t','t'],['m-q','q'],['m-sc','sc'],['m-p','p'],['m-cal','cal']].forEach(([id,k])=>{const el=$(id);el.value=MS[k];el.addEventListener('input',()=>{MS[k]=el.value;refresh()})});
+$('m-mode').addEventListener('change',e=>{MS.mode=e.target.value;refresh()});$('m-e').addEventListener('change',e=>{MS.e=e.target.value;refresh()});
+// aguja
+[['a-dm','dm'],['a-y0','y0'],['a-va','va'],['a-y1','y1'],['a-des','des'],['a-ra','ra'],['a-rv','rv'],['a-cu','cu']].forEach(([id,k])=>{const el=$(id);el.value=AS[k];el.addEventListener('input',()=>{AS[k]=el.value;refresh()})});
+[['a-dms','dms'],['a-vas','vas']].forEach(([id,k])=>{const el=$(id);el.value=AS[k];el.addEventListener('change',()=>{AS[k]=+el.value;refresh()})});
+// derrotas
+coordUI('d-a',DS.a);coordUI('d-b',DS.b);
+[['d-r','r'],['d-dist','dist']].forEach(([id,k])=>{const el=$(id);el.value=DS[k];el.addEventListener('input',()=>{DS[k]=el.value;refresh()})});
+$('d-mode').addEventListener('change',e=>{DS.mode=e.target.value;refresh()});
+['k-view','m-view','a-view','d-view'].forEach(id=>new ResizeObserver(refresh).observe($(id)));
+if(window.matchMedia)matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change',refresh);
+new MutationObserver(refresh).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+function frame(){if(dirty){dirty=false;try{update()}catch(err){console.error(err)}}requestAnimationFrame(frame)}
+window.simPER={MIA,KV,X,Y,merc,S,K,MS,AS,DS,calcK,calcM,calcA,calcD,FAROS,rd,mueve,go2,refresh,PTS,ptGet,get LAST(){return LAST}};
+formK();goHash();requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>

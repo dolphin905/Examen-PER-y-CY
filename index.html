@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test titulaciones náuticas de recreo</title>
-<link rel="stylesheet" href="style.css?v=20261122194410">
+<link rel="stylesheet" href="style.css?v=20261122201534">
 </head>
 <body>
 
@@ -12,10 +12,6 @@
   <h1>Test titulaciones náuticas de recreo</h1>
   <p class="subtitulo">Banco de preguntas extraído de los exámenes oficiales (2016-2026)</p>
 
-  <a id="acceso-simulador" class="acceso-simulador" href="../simulador/index.html">
-    <span class="acceso-titulo">🧭 Simulador de navegación · Capitán de Yate</span>
-    <span class="acceso-desc">Esfera celeste, derrotas y horas, rectas de altura, sextante y aguja. Mete los datos de un ejercicio y míralo dibujado, con el cálculo paso a paso.</span>
-  </a>
 
   <div class="bloque">
     <h2>1. Titulación</h2>
@@ -61,6 +57,21 @@
 
   <button id="btn-empezar" class="btn-primario">Empezar test</button>
   <p id="error-inicio" class="error"></p>
+
+  <section class="bloque simuladores" id="simuladores" aria-labelledby="tit-simuladores">
+    <h2 id="tit-simuladores">Simuladores de navegación</h2>
+    <p class="ayuda-sim">Para entender los ejercicios de carta y de cálculo: metes los datos del enunciado y ves el dibujo con el cálculo paso a paso.</p>
+    <div class="lista-sim">
+      <a class="tarjeta-sim" id="sim-per" href="../simulador-per/index.html">
+        <span class="nombre">PER y PY</span>
+        <span class="desc">Carta del Estrecho: situación, rumbos, estima, corrientes, mareas, corrección total y derrotas.</span>
+      </a>
+      <a class="tarjeta-sim" id="sim-cy" href="../simulador/index.html">
+        <span class="nombre">Capitán de Yate</span>
+        <span class="desc">Navegación astronómica: esfera celeste, horas, rectas de altura, sextante y aguja.</span>
+      </a>
+    </div>
+  </section>
 </div>
 
 <div id="pantalla-quiz" class="pantalla oculta">
@@ -142,7 +153,7 @@
   <img id="visor-imagen-img" src="" alt="Tabla ampliada">
 </div>
 
-<script>window.RUTA_DATOS = "data/"; window.RUTA_SIMULADOR = "simulador/index.html";</script>
-<script src="app.js?v=20261122194410"></script>
+<script>window.RUTA_DATOS = "data/"; window.RUTA_SIMULADOR = "simulador/index.html"; window.RUTA_SIMULADOR_PER = "simulador-per/index.html";</script>
+<script src="app.js?v=20261122201534"></script>
 </body>
 </html>

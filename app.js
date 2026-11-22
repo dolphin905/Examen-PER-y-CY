@@ -3,6 +3,7 @@
 const TITULACIONES = ["PNB", "PER", "PY", "CY"];
 const RUTA_DATOS = window.RUTA_DATOS || "../salida/";
 const RUTA_SIMULADOR = window.RUTA_SIMULADOR || "../simulador/index.html";
+const RUTA_SIMULADOR_PER = window.RUTA_SIMULADOR_PER || "../simulador-per/index.html";
 
 // Materias de cada titulacion (en el orden del examen) y nº de preguntas de cada una
 // en el examen oficial. El tercer valor (opcional) es el minimo de aciertos de esa materia.
@@ -571,7 +572,8 @@ function initPantallaInicio() {
   });
 
   initReportes();
-  document.getElementById("acceso-simulador").href = RUTA_SIMULADOR;
+  document.getElementById("sim-cy").href = RUTA_SIMULADOR;
+  document.getElementById("sim-per").href = RUTA_SIMULADOR_PER;
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
   document.getElementById("btn-anterior").addEventListener("click", anteriorPregunta);
@@ -801,10 +803,31 @@ function mostrarPantalla(nombre) {
   window.scrollTo(0, 0);
 }
 
-// Simulador de navegación (solo CY, teoría y cálculo de navegación): devuelve el enlace con la pestaña y el
-// ejercicio que mejor encajan con el enunciado, o "" si la pregunta no es de esas materias
+// Simuladores de navegación: devuelve el enlace con la pestaña y el ejercicio que mejor encajan con el
+// enunciado, o "" si la pregunta no es de una materia que tenga simulador
 const MATERIAS_SIMULADOR = new Set(["Teoría de navegación", "Cálculo de navegación"]);
+const MATERIAS_CARTA = {PER: ["Carta de navegación", "Teoría de la navegación"], PY: ["Navegación carta", "Teoría de navegación"]};
+function enlaceSimuladorPER(q) {
+  const t = (q.enunciado || "").toLowerCase();
+  const hay = re => re.test(t);
+  const teoria = /teor/i.test(q.materia);
+  let destino = "";
+  if (hay(/marea|pleamar|bajamar|cero hidrogr|anuario|sonda (en el |del )?momento|\bsm\b|sonda total/)) {
+    destino = hay(/a qu[eé] hora|hora (a la que|en que|m[aá]s temprana|m[aá]s tard[ií]a)|podremos (entrar|salir|pasar)/) ? "mareas-hora"
+      : hay(/(sonda|altura)[^.]{0,40}(en|de) la (primera |segunda )?(pleamar|bajamar)/) ? "mareas-extremo" : "mareas-altura";
+  } else if (hay(/loxodr|ortodr|c[ií]rculo m[aá]ximo|rumbo directo|distancia directa|latitud(es)? aumentada/) && !hay(/faro|punta |cabo |isla /)) destino = "derrota";
+  else if (hay(/corriente/) && hay(/(rumbo|direcci[oó]n|intensidad)[^.]{0,30}(de la )?corriente|\brc\b|\bihc\b|ihc\s*\)/) && hay(/calcul|hall|determin|cu[aá]l/) && !hay(/rumbo (a|para) (pasar|llegar|ir)/)) destino = "carta-corriente";
+  else if (hay(/situaci[oó]n (de )?estimada|\bestima\b|al ser hrb|a la hrb[^.]*(nos encontraremos|situaci)/)) destino = "carta-estima";
+  else if (hay(/rumbo (de aguja |verdadero )?(para|a|hacia) (pasar|ir|llegar|dirigir|la|el)|damos rumbo|ponemos rumbo|pone proa|proa (al|a la)|pasar a [\d,]+ millas|hora de llegada|hrb de llegada|calcular el rumbo/)) destino = "carta-rumbo";
+  else if (teoria && hay(/corre?cci?[oó]n total|\bct\b|desv[ií]o|declinaci[oó]n magn/)) destino = "aguja";
+  else if (hay(/demora|distancia radar|enfilaci|oposici|marcaci|situaci[oó]n (verdadera|observada|por)|l[ií]neas? de posici|intersecci|nos situamos|situados en|calcular la situaci/)) destino = "carta-situacion";
+  else if (hay(/declinaci[oó]n magn|desv[ií]o|correcci[oó]n total|\bct\b|norte magn[eé]tico|cuadrantal|rumbo de aguja|aguja n[aá]utica/)) destino = "aguja";
+  else if (hay(/latitud|longitud|coordenadas|apartamiento|milla/)) destino = "carta-medir";
+  else if (!teoria) destino = "carta-situacion";
+  return destino ? `${RUTA_SIMULADOR_PER}#${destino}` : "";
+}
 function enlaceSimulador(q) {
+  if (MATERIAS_CARTA[q.titulacion] && MATERIAS_CARTA[q.titulacion].includes(q.materia)) return enlaceSimuladorPER(q);
   if (q.titulacion !== "CY" || !MATERIAS_SIMULADOR.has(q.materia)) return "";
   const t = (q.enunciado || "").toLowerCase();
   const hay = re => re.test(t);
