@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test titulaciones náuticas de recreo</title>
-<link rel="stylesheet" href="style.css?v=20261122223542">
+<link rel="stylesheet" href="style.css?v=20261122232348">
 </head>
 <body>
 
@@ -16,11 +16,11 @@
   <div class="bloque">
     <h2>1. Titulación</h2>
     <div class="opciones-titulacion" id="opciones-titulacion">
-      <label class="tarjeta-tit"><input type="checkbox" value="PNB" checked><span class="nombre">PNB</span><span class="desc">Patrón de Navegación Básica</span><span class="n-preguntas" data-tit="PNB">…</span></label>
-      <label class="tarjeta-tit"><input type="checkbox" value="PER" checked><span class="nombre">PER</span><span class="desc">Patrón de Embarcaciones de Recreo</span><span class="n-preguntas" data-tit="PER">…</span></label>
-      <label class="tarjeta-tit"><input type="checkbox" value="PY"><span class="nombre">PY</span><span class="desc">Patrón de Yate</span><span class="n-preguntas" data-tit="PY">…</span></label>
-      <label class="tarjeta-tit"><input type="checkbox" value="CY"><span class="nombre">CY</span><span class="desc">Capitán de Yate</span><span class="n-preguntas" data-tit="CY">…</span></label>
-      <label class="tarjeta-tit"><input type="checkbox" value="PPER"><span class="nombre">PPER</span><span class="desc">Patrón Profesional de Embarcaciones de Recreo</span><span class="n-preguntas" data-tit="PPER">…</span></label>
+      <label class="tarjeta-tit"><input type="radio" name="titulacion" value="PNB"><span class="nombre">PNB</span><span class="desc">Patrón de Navegación Básica</span><span class="n-preguntas" data-tit="PNB">…</span></label>
+      <label class="tarjeta-tit"><input type="radio" name="titulacion" value="PER" checked><span class="nombre">PER</span><span class="desc">Patrón de Embarcaciones de Recreo</span><span class="n-preguntas" data-tit="PER">…</span></label>
+      <label class="tarjeta-tit"><input type="radio" name="titulacion" value="PY"><span class="nombre">PY</span><span class="desc">Patrón de Yate</span><span class="n-preguntas" data-tit="PY">…</span></label>
+      <label class="tarjeta-tit"><input type="radio" name="titulacion" value="CY"><span class="nombre">CY</span><span class="desc">Capitán de Yate</span><span class="n-preguntas" data-tit="CY">…</span></label>
+      <label class="tarjeta-tit"><input type="radio" name="titulacion" value="PPER"><span class="nombre">PPER</span><span class="desc">Patrón Profesional de Embarcaciones de Recreo</span><span class="n-preguntas" data-tit="PPER">…</span></label>
     </div>
   </div>
 
@@ -60,15 +60,15 @@
   <p id="error-inicio" class="error"></p>
 
   <section class="bloque simuladores" id="simuladores" aria-labelledby="tit-simuladores">
-    <h2 id="tit-simuladores">Simuladores de navegación</h2>
+    <h2 id="tit-simuladores">Simulador de navegación</h2>
     <p class="ayuda-sim">Para entender los ejercicios de carta y de cálculo: metes los datos del enunciado y ves el dibujo con el cálculo paso a paso.</p>
     <div class="lista-sim">
       <a class="tarjeta-sim" id="sim-per" href="../simulador-per/index.html">
-        <span class="nombre">PER y PY</span>
+        <span class="nombre">Carta del Estrecho</span>
         <span class="desc">Carta del Estrecho: situación, rumbos, estima, corrientes, mareas, corrección total y derrotas.</span>
       </a>
       <a class="tarjeta-sim" id="sim-cy" href="../simulador/index.html">
-        <span class="nombre">Capitán de Yate</span>
+        <span class="nombre">Esfera celeste</span>
         <span class="desc">Navegación astronómica: esfera celeste, horas, rectas de altura, sextante y aguja.</span>
       </a>
     </div>
@@ -155,6 +155,6 @@
 </div>
 
 <script>window.RUTA_DATOS = "data/"; window.RUTA_SIMULADOR = "simulador/index.html"; window.RUTA_SIMULADOR_PER = "simulador-per/index.html";</script>
-<script src="app.js?v=20261122223542"></script>
+<script src="app.js?v=20261122232348"></script>
 </body>
 </html>

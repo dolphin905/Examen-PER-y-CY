@@ -253,6 +253,12 @@
    "nombre": "DGMM (Nacional)",
    "preguntas": 240,
    "grupos": 123
+  },
+  {
+   "slug": "preguntas-generadas-por-ia",
+   "nombre": "Preguntas generadas por IA",
+   "preguntas": 10,
+   "grupos": 10
   }
  ]
 }

@@ -1,6 +1,7 @@
 "use strict";
 
 const TITULACIONES = ["PNB", "PER", "PY", "CY", "PPER"];
+const FUENTE_IA = "preguntas-generadas-por-ia";
 const RUTA_DATOS = window.RUTA_DATOS || "../salida/";
 const RUTA_SIMULADOR = window.RUTA_SIMULADOR || "../simulador/index.html";
 const RUTA_SIMULADOR_PER = window.RUTA_SIMULADOR_PER || "../simulador-per/index.html";
@@ -51,7 +52,8 @@ function minimoMateria(tit, materia) {
 // fichero por fuente; solo se cargan las que el alumno deja marcadas
 const DGMM = "DGMM (Nacional)";
 let fuentesDisponibles = {};          // tit -> [{slug, nombre, preguntas, grupos}]
-const fuentesDesmarcadas = new Set(); // slugs que el alumno ha quitado (por defecto, todas marcadas)
+let cargaIndiceFuentes;
+const fuentesDesmarcadas = new Set(); // titulación y slug de cada fuente desmarcada
 const cacheFuentes = {};              // "TIT|slug" -> Promise de las preguntas usables
 let explicaciones = {};   // clave de pregunta -> texto (se rellena por tandas; puede estar incompleto)
 
@@ -174,7 +176,8 @@ function escapaHtml(s) {
 const datosCargados = {};   // "TIT|slug" -> preguntas ya descargadas
 
 function fuentesActivas(tit) {
-  return (fuentesDisponibles[tit] || []).filter(f => !fuentesDesmarcadas.has(f.slug));
+  return (fuentesDisponibles[tit] || []).filter(f =>
+    !fuentesDesmarcadas.has(`${tit}|${f.slug}`) && (modo !== "oficial" || f.slug !== FUENTE_IA));
 }
 
 function cargaFuente(tit, slug) {
@@ -210,9 +213,16 @@ function datosDe(tit) {
 }
 
 function cargaFuentesDisponibles() {
-  return fetch(`${RUTA_DATOS}fuentes.json`)
-    .then(r => (r.ok ? r.json() : Promise.reject(new Error("No se pudo cargar fuentes.json"))))
-    .then(data => { fuentesDisponibles = data; });
+  if (!cargaIndiceFuentes) {
+    cargaIndiceFuentes = fetch(`${RUTA_DATOS}fuentes.json`, { cache: "no-cache" })
+      .then(r => {
+        if (!r.ok) throw new Error(`No se pudo cargar el índice de fuentes (HTTP ${r.status}).`);
+        return r.json();
+      })
+      .then(data => { fuentesDisponibles = data; })
+      .catch(err => { cargaIndiceFuentes = undefined; throw err; });
+  }
+  return cargaIndiceFuentes;
 }
 
 function guardaPreferencias() {
@@ -231,9 +241,9 @@ function cargaPreferencias() {
   try {
     const p = JSON.parse(localStorage.getItem("test-nautica-prefs"));
     if (!p) return;
-    document.querySelectorAll("#opciones-titulacion input").forEach(i => {
-      i.checked = (p.tits || []).includes(i.value);
-    });
+    const anteriores = Array.isArray(p.tits) ? p.tits.filter(t => TITULACIONES.includes(t)) : [];
+    const tit = anteriores.at(-1) || "PER";
+    document.querySelectorAll("#opciones-titulacion input").forEach(i => { i.checked = i.value === tit; });
     TITULACIONES.forEach(t => {
       if (p.materias && Array.isArray(p.materias[t])) {
         const validas = new Set(ESTRUCTURA[t].map(m => m[0]));
@@ -244,10 +254,14 @@ function cargaPreferencias() {
     if (typeof p.n === "number") numeroPreguntasElegido = p.n;
     modoReporte = p.reporte === true;
     fuentesDesmarcadas.clear();
-    (Array.isArray(p.fuentesOff) ? p.fuentesOff : []).forEach(f => fuentesDesmarcadas.add(f));
+    (Array.isArray(p.fuentesOff) ? p.fuentesOff : []).forEach(f => {
+      if (typeof f !== "string") return;
+      if (f.includes("|")) fuentesDesmarcadas.add(f);
+      else TITULACIONES.filter(t => t !== "PPER").forEach(t => fuentesDesmarcadas.add(`${t}|${f}`));
+    });
     juegoPalabras = p.juego === true;
     materiasAntesJuego = p.antesJuego && typeof p.antesJuego === "object" ? p.antesJuego : null;
-    if (juegoPalabras && !(p.tits || []).includes("CY")) activaJuego(false);
+    if (juegoPalabras && tit !== "CY") activaJuego(false);
   } catch (e) { /* preferencias corruptas: se ignoran */ }
 }
 
@@ -318,17 +332,13 @@ function unicasPorGrupo(pool, vistos) {
 function pintaFuentes() {
   const cont = document.getElementById("bloque-fuentes");
   cont.innerHTML = "";
-  const seleccion = titulacionesSeleccionadas();
-  const porSlug = new Map();   // slug -> {nombre, n}
-  TITULACIONES.forEach(tit => (fuentesDisponibles[tit] || []).forEach(f => {
-    if (!porSlug.has(f.slug)) porSlug.set(f.slug, { nombre: f.nombre, n: 0 });
-    if (seleccion.includes(tit)) porSlug.get(f.slug).n += f.preguntas;
-  }));
-  if (porSlug.size <= 1) return;   // con una sola fuente no hay nada que elegir
+  const [tit] = titulacionesSeleccionadas();
+  const fuentes = fuentesDisponibles[tit] || [];
+  if (!fuentes.length || juegoActivo()) return;
   const cab = document.createElement("div");
   cab.className = "grupo-cab";
   cab.innerHTML = `<strong>Fuente de los exámenes</strong>
-    <span class="grupo-info">${porSlug.size} fuentes</span>
+    <span class="grupo-info">${fuentes.length} fuentes</span>
     <span class="grupo-acciones"><button type="button" class="link" data-acc="todas">todas</button> ·
     <button type="button" class="link" data-acc="ninguna">ninguna</button></span>`;
   const grupo = document.createElement("div");
@@ -336,18 +346,22 @@ function pintaFuentes() {
   grupo.appendChild(cab);
   const chips = document.createElement("div");
   chips.className = "chips";
-  porSlug.forEach((info, slug) => {
+  fuentes.forEach(fuente => {
+    const clave = `${tit}|${fuente.slug}`;
+    const soloRepaso = modo === "oficial" && fuente.slug === FUENTE_IA;
     const label = document.createElement("label");
     label.className = "chip";
     const input = document.createElement("input");
     input.type = "checkbox";
-    input.checked = !fuentesDesmarcadas.has(slug);
+    input.disabled = soloRepaso;
+    input.checked = !soloRepaso && !fuentesDesmarcadas.has(clave);
     input.addEventListener("change", () => {
-      if (input.checked) fuentesDesmarcadas.delete(slug); else fuentesDesmarcadas.add(slug);
+      if (input.checked) fuentesDesmarcadas.delete(clave); else fuentesDesmarcadas.add(clave);
       cambioDeFuentes();
     });
     const span = document.createElement("span");
-    span.innerHTML = `${escapaHtml(info.nombre)}<small>${info.n} preguntas${info.n === 0 ? " (de las titulaciones elegidas)" : ""}</small>`;
+    const nombre = tit === "PPER" && fuente.nombre === DGMM ? "DGMM" : fuente.nombre;
+    span.innerHTML = `${escapaHtml(nombre)}<small>${soloRepaso ? "Solo en modo práctica" : `${fuente.grupos} preguntas`}</small>`;
     label.appendChild(input);
     label.appendChild(span);
     chips.appendChild(label);
@@ -356,14 +370,28 @@ function pintaFuentes() {
   cont.appendChild(grupo);
   cab.querySelectorAll(".link").forEach(btn => {
     btn.addEventListener("click", () => {
-      if (btn.dataset.acc === "todas") fuentesDesmarcadas.clear();
-      else porSlug.forEach((_, slug) => fuentesDesmarcadas.add(slug));
+      fuentes.filter(f => modo !== "oficial" || f.slug !== FUENTE_IA).forEach(f => {
+        const clave = `${tit}|${f.slug}`;
+        if (btn.dataset.acc === "todas") fuentesDesmarcadas.delete(clave);
+        else fuentesDesmarcadas.add(clave);
+      });
       cambioDeFuentes();
     });
   });
 }
 
+function pintaSimuladores() {
+  const [tit] = titulacionesSeleccionadas();
+  const esfera = tit === "CY";
+  const carta = tit === "PER" || tit === "PY";
+  document.getElementById("sim-cy").classList.toggle("oculta", !esfera);
+  document.getElementById("sim-per").classList.toggle("oculta", !carta);
+  document.getElementById("simuladores").classList.toggle("oculta", !esfera && !carta);
+}
+
 function cambioDeFuentes() {
+  document.getElementById("error-inicio").textContent = "";
+  if (modo === "oficial" && pperSoloPractica()) modo = "total";
   pintaFuentes();
   refrescaDatos();
   pintaMaterias();
@@ -414,6 +442,7 @@ function chipJuego() {
   input.checked = juegoActivo();
   input.addEventListener("change", () => {
     activaJuego(input.checked);
+    pintaFuentes();
     pintaMaterias();
     actualizaResumen();
     guardaPreferencias();
@@ -457,7 +486,10 @@ function pintaMaterias() {
         if (veniaDelJuego) abandonaJuego();
         if (input.checked) materiasMarcadas[tit].add(materia);
         else materiasMarcadas[tit].delete(materia);
-        if (veniaDelJuego) pintaMaterias();
+        if (veniaDelJuego) {
+          pintaFuentes();
+          pintaMaterias();
+        }
         actualizaResumen();
         guardaPreferencias();
       });
@@ -496,16 +528,23 @@ function totalOficialSeleccion() {
   return total;
 }
 
+function pperSoloPractica() {
+  return titulacionesSeleccionadas()[0] === "PPER" &&
+    fuentesDesmarcadas.has("PPER|dgmm-nacional");
+}
+
 function actualizaResumen() {
   const el = document.getElementById("resumen-seleccion");
   const juego = juegoActivo();
-  if (juego) modo = "total";   // el juego de palabras no sigue el examen oficial
+  const soloPractica = pperSoloPractica();
+  if (juego || soloPractica) modo = "total";
   document.getElementById("opciones-n").classList.toggle("oculta", modo === "oficial");
   document.querySelectorAll("#opciones-modo .n-btn").forEach(b => {
     b.classList.toggle("n-btn-activo", b.dataset.modo === modo);
     if (b.dataset.modo === "oficial") {
-      b.disabled = juego;
-      b.title = juego ? "No disponible en el juego de palabras en inglés" : "";
+      b.disabled = juego || soloPractica;
+      b.title = juego ? "No disponible en el juego de palabras en inglés"
+        : soloPractica ? "Marca DGMM para hacer un simulacro oficial" : "";
     }
   });
   document.querySelectorAll("#opciones-n .n-btn").forEach(b =>
@@ -549,6 +588,8 @@ function initPantallaInicio() {
   document.querySelectorAll("#opciones-titulacion input").forEach(i => {
     i.addEventListener("change", () => {
       if (juegoPalabras && !titulacionesSeleccionadas().includes("CY")) activaJuego(false);
+      document.getElementById("error-inicio").textContent = "";
+      pintaSimuladores();
       pintaFuentes();
       refrescaDatos();
       pintaMaterias();
@@ -560,8 +601,7 @@ function initPantallaInicio() {
   document.querySelectorAll("#opciones-modo .n-btn").forEach(btn => {
     btn.addEventListener("click", () => {
       modo = btn.dataset.modo;
-      actualizaResumen();
-      guardaPreferencias();
+      cambioDeFuentes();
     });
   });
 
@@ -576,6 +616,7 @@ function initPantallaInicio() {
   initReportes();
   document.getElementById("sim-cy").href = RUTA_SIMULADOR;
   document.getElementById("sim-per").href = RUTA_SIMULADOR_PER;
+  pintaSimuladores();
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
   document.getElementById("btn-anterior").addEventListener("click", anteriorPregunta);
@@ -601,11 +642,6 @@ async function empezarTest() {
     errorEl.textContent = "Marca al menos una materia.";
     return;
   }
-  if (!juego && !seleccion.some(t => fuentesActivas(t).length > 0)) {
-    errorEl.textContent = "Marca al menos una fuente de exámenes.";
-    return;
-  }
-
   const btn = document.getElementById("btn-empezar");
   btn.disabled = true;
   btn.textContent = "Cargando preguntas...";
@@ -616,6 +652,11 @@ async function empezarTest() {
       cola = construyeColaJuego();
       esExamenOficial = false;
     } else {
+      await cargaFuentesDisponibles();
+      if (!seleccion.some(t => fuentesActivas(t).length > 0)) {
+        errorEl.textContent = "Marca al menos una fuente de exámenes.";
+        return;
+      }
       await Promise.all(seleccion.map(cargaTitulacion));
       cola = construyeCola(seleccion);
       esExamenOficial = modo === "oficial";
