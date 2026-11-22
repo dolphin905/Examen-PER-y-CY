@@ -4,13 +4,13 @@
    "slug": "dgmm-nacional",
    "nombre": "DGMM (Nacional)",
    "preguntas": 1170,
-   "grupos": 627
+   "grupos": 625
   },
   {
    "slug": "illes-balears",
    "nombre": "Illes Balears",
    "preguntas": 2467,
-   "grupos": 1274
+   "grupos": 1271
   },
   {
    "slug": "andalucia",
@@ -34,7 +34,7 @@
    "slug": "cataluna",
    "nombre": "Cataluña",
    "preguntas": 354,
-   "grupos": 224
+   "grupos": 223
   },
   {
    "slug": "canarias",
@@ -66,13 +66,13 @@
    "slug": "dgmm-nacional",
    "nombre": "DGMM (Nacional)",
    "preguntas": 5851,
-   "grupos": 2580
+   "grupos": 2557
   },
   {
    "slug": "illes-balears",
    "nombre": "Illes Balears",
    "preguntas": 9071,
-   "grupos": 2943
+   "grupos": 2924
   },
   {
    "slug": "andalucia",
@@ -90,13 +90,13 @@
    "slug": "cataluna",
    "nombre": "Cataluña",
    "preguntas": 987,
-   "grupos": 526
+   "grupos": 525
   },
   {
    "slug": "asturias",
    "nombre": "Asturias",
    "preguntas": 634,
-   "grupos": 473
+   "grupos": 472
   },
   {
    "slug": "canarias",
@@ -128,13 +128,13 @@
    "slug": "dgmm-nacional",
    "nombre": "DGMM (Nacional)",
    "preguntas": 1291,
-   "grupos": 724
+   "grupos": 715
   },
   {
    "slug": "illes-balears",
    "nombre": "Illes Balears",
    "preguntas": 2026,
-   "grupos": 697
+   "grupos": 687
   },
   {
    "slug": "region-de-murcia",
@@ -189,14 +189,14 @@
   {
    "slug": "dgmm-nacional",
    "nombre": "DGMM (Nacional)",
-   "preguntas": 1344,
-   "grupos": 755
+   "preguntas": 1345,
+   "grupos": 747
   },
   {
    "slug": "illes-balears",
    "nombre": "Illes Balears",
    "preguntas": 2021,
-   "grupos": 755
+   "grupos": 749
   },
   {
    "slug": "region-de-murcia",
