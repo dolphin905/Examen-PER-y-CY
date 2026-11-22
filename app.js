@@ -1,6 +1,6 @@
 "use strict";
 
-const TITULACIONES = ["PNB", "PER", "PY", "CY"];
+const TITULACIONES = ["PNB", "PER", "PY", "CY", "PPER"];
 const RUTA_DATOS = window.RUTA_DATOS || "../salida/";
 const RUTA_SIMULADOR = window.RUTA_SIMULADOR || "../simulador/index.html";
 const RUTA_SIMULADOR_PER = window.RUTA_SIMULADOR_PER || "../simulador-per/index.html";
@@ -18,6 +18,7 @@ const ESTRUCTURA = {
         ["Navegación carta", 10, 7]],
   CY:  [["Teoría de navegación", 10, 5], ["Cálculo de navegación", 10, 6], ["Meteorología", 10, 5],
         ["Inglés", 10, 5]],
+  PPER: [["Normativa marítima", 30]],
 };
 
 // Criterio de aprobado del examen oficial: aciertos minimos en total y como se combinan con
@@ -30,6 +31,7 @@ const CRITERIO = {
   PER: { min: 32, modo: "ambos" },
   PY:  { min: 28, modo: "ambos" },
   CY:  { min: 28, modo: "ambos" },
+  PPER: { min: 18, modo: "ambos" },
 };
 
 // materias cuyas preguntas se acompañan de las tablas de su examen (los ejercicios de calculo y
@@ -993,8 +995,9 @@ function htmlVeredicto(v) {
   const regla = v.criterio === "ambos"
     ? "Para aprobar hacen falta el total mínimo y los mínimos por materia."
     : "Se aprueba con el total mínimo o con todos los mínimos por materia.";
+  const textoRegla = conMinimos ? regla : `Para aprobar hacen falta ${v.min} aciertos.`;
   return `<div class="veredicto ${v.apto ? "apto" : "no-apto"}"><h3>${v.tit}: ${v.apto ? "APTO" : "NO APTO"}</h3>` +
-    detalle.map(d => `<p>${d}</p>`).join("") + `<p><small>${regla}</small></p></div>`;
+    detalle.map(d => `<p>${d}</p>`).join("") + `<p><small>${textoRegla}</small></p></div>`;
 }
 
 function mostrarResultado() {

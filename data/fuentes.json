@@ -246,5 +246,13 @@
    "preguntas": 19,
    "grupos": 19
   }
+ ],
+ "PPER": [
+  {
+   "slug": "dgmm-nacional",
+   "nombre": "DGMM (Nacional)",
+   "preguntas": 240,
+   "grupos": 123
+  }
  ]
 }
