@@ -246,7 +246,7 @@ function cargaPreferencias() {
     const tit = anteriores.at(-1) || "PER";
     document.querySelectorAll("#opciones-titulacion input").forEach(i => { i.checked = i.value === tit; });
     TITULACIONES.forEach(t => {
-      if (p.materias && Array.isArray(p.materias[t])) {
+      if (t !== "PPER" && p.materias && Array.isArray(p.materias[t])) {
         const validas = new Set(ESTRUCTURA[t].map(m => m[0]));
         materiasMarcadas[t] = new Set(p.materias[t].filter(m => validas.has(m)));
       }
@@ -278,7 +278,7 @@ function activaJuego(on) {
   juegoPalabras = on;
   if (on) {
     materiasAntesJuego = Object.fromEntries(TITULACIONES.map(t => [t, Array.from(materiasMarcadas[t])]));
-    TITULACIONES.forEach(t => { materiasMarcadas[t] = new Set(); });
+    TITULACIONES.filter(t => t !== "PPER").forEach(t => { materiasMarcadas[t] = new Set(); });
     modo = "total";
   } else {
     TITULACIONES.forEach(t => {
@@ -458,6 +458,9 @@ function pintaMaterias() {
   const cont = document.getElementById("bloque-materias");
   cont.innerHTML = "";
   const seleccion = titulacionesSeleccionadas();
+  const esPPER = seleccion[0] === "PPER";
+  document.getElementById("titulo-materias").textContent = esPPER ? "2. Fuente de las preguntas" : "2. Materias";
+  if (esPPER) return;
   if (seleccion.length === 0) {
     cont.innerHTML = '<p class="vacio">Elige al menos una titulación.</p>';
     return;
