@@ -257,8 +257,8 @@
   {
    "slug": "preguntas-generadas-por-ia",
    "nombre": "Preguntas generadas por IA",
-   "preguntas": 10,
-   "grupos": 10
+   "preguntas": 200,
+   "grupos": 200
   }
  ]
 }

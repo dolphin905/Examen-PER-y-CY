@@ -183,7 +183,8 @@ function fuentesActivas(tit) {
 function cargaFuente(tit, slug) {
   const k = `${tit}|${slug}`;
   if (!cacheFuentes[k]) {
-    cacheFuentes[k] = fetch(`${RUTA_DATOS}por_fuente/${tit}/${tit}_${slug}.json`)
+    const opciones = slug === FUENTE_IA ? { cache: "no-cache" } : undefined;
+    cacheFuentes[k] = fetch(`${RUTA_DATOS}por_fuente/${tit}/${tit}_${slug}.json`, opciones)
       .then(r => {
         if (!r.ok) throw new Error(`No se pudo cargar ${tit} (${slug}): HTTP ${r.status}`);
         return r.json();
@@ -380,13 +381,11 @@ function pintaFuentes() {
   });
 }
 
+// Enlaces a los simuladores dentro de las tarjetas de titulación (PER y PY: carta; CY: astronómico)
 function pintaSimuladores() {
-  const [tit] = titulacionesSeleccionadas();
-  const esfera = tit === "CY";
-  const carta = tit === "PER" || tit === "PY";
-  document.getElementById("sim-cy").classList.toggle("oculta", !esfera);
-  document.getElementById("sim-per").classList.toggle("oculta", !carta);
-  document.getElementById("simuladores").classList.toggle("oculta", !esfera && !carta);
+  document.querySelectorAll(".sim-link").forEach(a => {
+    a.href = a.dataset.sim === "cy" ? RUTA_SIMULADOR : RUTA_SIMULADOR_PER;
+  });
 }
 
 function cambioDeFuentes() {
@@ -614,8 +613,6 @@ function initPantallaInicio() {
   });
 
   initReportes();
-  document.getElementById("sim-cy").href = RUTA_SIMULADOR;
-  document.getElementById("sim-per").href = RUTA_SIMULADOR_PER;
   pintaSimuladores();
   document.getElementById("btn-empezar").addEventListener("click", empezarTest);
   document.getElementById("btn-siguiente").addEventListener("click", siguientePregunta);
